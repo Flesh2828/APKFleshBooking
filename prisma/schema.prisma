@@ -1,0 +1,115 @@
+// Prisma Schema for RoomBook
+// Matches PRD v1.0 Section 11.2 and docs/DATABASE.md
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(uuid())
+  name         String
+  email        String        @unique
+  passwordHash String        @map("password_hash")
+  role         String        // 'ADMIN', 'MAHASISWA', 'DOSEN', 'STAF'
+  department   String?
+  phone        String?
+  createdAt    DateTime      @default(now()) @map("created_at")
+
+  reservations Reservation[]
+  logs         ReservationLog[]
+  notifications InAppNotification[]
+
+  @@map("users")
+}
+
+model Room {
+  id           String               @id @default(uuid())
+  name         String
+  building     String
+  floor        Int                  @default(1)
+  capacity     Int
+  facilities   String               // JSON array of strings
+  status       String               @default("ACTIVE") // 'ACTIVE', 'INACTIVE', 'MAINTENANCE'
+  openingHour  String               @default("08:00")  @map("opening_hour")
+  closingHour  String               @default("17:00")  @map("closing_hour")
+  imageUrl     String?              @map("image_url")
+  description  String?
+  createdAt    DateTime             @default(now()) @map("created_at")
+
+  reservations    Reservation[]
+  unavailabilities RoomUnavailability[]
+
+  @@map("rooms")
+}
+
+model Reservation {
+  id                   String           @id // Unique code e.g. RB-202609-001
+  userId               String           @map("user_id")
+  roomId               String           @map("room_id")
+  userName             String           @map("user_name")
+  organization         String
+  startTime            DateTime         @map("start_time")
+  endTime              DateTime         @map("end_time")
+  purpose              String
+  participantCount     Int              @map("participant_count")
+  additionalFacilities String?          @map("additional_facilities")
+  notes                String?
+  status               String           @default("PENDING") // 'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'COMPLETED'
+  createdAt            DateTime         @default(now()) @map("created_at")
+  updatedAt            DateTime         @updatedAt @map("updated_at")
+
+  user                 User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room                 Room             @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  logs                 ReservationLog[]
+
+  @@index([roomId, startTime, endTime])
+  @@map("reservations")
+}
+
+model ReservationLog {
+  id             String       @id @default(uuid())
+  reservationId  String       @map("reservation_id")
+  adminId        String       @map("admin_id")
+  previousStatus String       @map("previous_status")
+  newStatus      String       @map("new_status")
+  reason         String?
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  reservation    Reservation  @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  admin          User         @relation(fields: [adminId], references: [id])
+
+  @@map("reservation_logs")
+}
+
+model RoomUnavailability {
+  id        String   @id @default(uuid())
+  roomId    String   @map("room_id")
+  startTime DateTime @map("start_time")
+  endTime   DateTime @map("end_time")
+  reason    String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@map("room_unavailability")
+}
+
+model InAppNotification {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  reservationId String?  @map("reservation_id")
+  title         String
+  message       String
+  type          String   @default("INFO") // 'INFO', 'SUCCESS', 'WARNING', 'DANGER'
+  isRead        Boolean  @default(false)  @map("is_read")
+  createdAt     DateTime @default(now())  @map("created_at")
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
