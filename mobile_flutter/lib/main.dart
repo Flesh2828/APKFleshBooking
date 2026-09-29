@@ -9,8 +9,8 @@ Future<void> main() async {
   // Inisialisasi Supabase Client
   // Ganti URL dan Anon Key dengan kredensial Supabase Project Anda
   await Supabase.initialize(
-    url: 'https://xyzcompany.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy_anon_key_for_demonstration',
+    url: 'https://wmtdckxqsgjmuwvikleb.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtdGRja3hxc2dqbXV3dmlrbGViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA2NTk3OTUsImV4cCI6MjEwNjIzNTc5NX0.aZf8-x9znllJy3ONrbECsc1T30NeigcrsT64k8hem5U',
   );
 
   runApp(const RoomBookApp());

@@ -85,7 +85,7 @@ class RoomListScreen extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: isAvailable ? Colors.green.shade50 : Colors.red.shade50,
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.Border.all(
+                              border: Border.all(
                                 color: isAvailable ? Colors.green : Colors.red,
                               ),
                             ),
