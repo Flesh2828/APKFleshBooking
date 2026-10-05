@@ -1,12 +1,13 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/room_model.dart';
 import '../models/reservation_model.dart';
+import '../models/user_model.dart';
 
 class SupabaseService {
   static final SupabaseClient client = Supabase.instance.client;
 
   // ==========================================
-  // AUTHENTICATION
+  // AUTHENTICATION & PROFILE
   // ==========================================
 
   static User? get currentUser => client.auth.currentUser;
@@ -26,11 +27,42 @@ class SupabaseService {
     await client.auth.signOut();
   }
 
+  /// Mengambil data profil user dari tabel `profiles`
+  static Future<UserModel?> getCurrentUserProfile() async {
+    final user = currentUser;
+    if (user == null) return null;
+
+    try {
+      final res = await client
+          .from('profiles')
+          .select()
+          .eq('id', user.id)
+          .maybeSingle();
+
+      if (res != null) {
+        return UserModel.fromJson(res);
+      }
+    } catch (_) {
+      // Fallback jika profiles belum terisi
+    }
+
+    // Fallback data dari auth metadata
+    final metaName = user.userMetadata?['name'] as String?;
+    final metaRole = user.userMetadata?['role'] as String?;
+
+    return UserModel(
+      id: user.id,
+      name: metaName ?? user.email?.split('@').first ?? 'Pengguna',
+      email: user.email ?? '',
+      role: (metaRole ?? 'MAHASISWA').toUpperCase(),
+    );
+  }
+
   // ==========================================
   // ROOMS (FETCH & REALTIME STREAM)
   // ==========================================
 
-  // Mendapatkan daftar ruangan (Query Statis)
+  /// Mendapatkan daftar ruangan (Query Statis)
   static Future<List<RoomModel>> getRooms() async {
     final response = await client
         .from('rooms')
@@ -40,7 +72,7 @@ class SupabaseService {
     return (response as List).map((e) => RoomModel.fromJson(e)).toList();
   }
 
-  // Mendapatkan stream realtime ruangan (otomatis terupdate jika ada perubahan)
+  /// Mendapatkan stream realtime ruangan (otomatis terupdate jika status berubah)
   static Stream<List<RoomModel>> getRoomsRealtimeStream() {
     return client
         .from('rooms')
@@ -76,7 +108,6 @@ class SupabaseService {
       if (notes != null) 'notes': notes,
     };
 
-    // Memanggil Supabase Edge Function
     final FunctionResponse res = await client.functions.invoke(
       'create-reservation',
       body: payload,
@@ -90,18 +121,56 @@ class SupabaseService {
     }
   }
 
-  /// Ambil reservasi milik user yang sedang login
+  /// Ambil reservasi milik user yang sedang login beserta relasi ruangan
   static Future<List<ReservationModel>> getUserReservations() async {
     final userId = currentUser?.id;
     if (userId == null) return [];
 
-    final response = await client
-        .from('reservations')
-        .select()
-        .eq('user_id', userId)
-        .order('created_at', ascending: false);
+    try {
+      final response = await client
+          .from('reservations')
+          .select('*, rooms(*)')
+          .eq('user_id', userId)
+          .order('created_at', ascending: false);
 
-    return (response as List).map((e) => ReservationModel.fromJson(e)).toList();
+      return (response as List).map((e) => ReservationModel.fromJson(e)).toList();
+    } catch (_) {
+      // Fallback tanpa join jika join bermasalah
+      final response = await client
+          .from('reservations')
+          .select()
+          .eq('user_id', userId)
+          .order('created_at', ascending: false);
+
+      return (response as List).map((e) => ReservationModel.fromJson(e)).toList();
+    }
+  }
+
+  /// Ambil semua reservasi (biasanya untuk Admin)
+  static Future<List<ReservationModel>> getAllReservations() async {
+    try {
+      final response = await client
+          .from('reservations')
+          .select('*, rooms(*)')
+          .order('created_at', ascending: false);
+
+      return (response as List).map((e) => ReservationModel.fromJson(e)).toList();
+    } catch (_) {
+      final response = await client
+          .from('reservations')
+          .select()
+          .order('created_at', ascending: false);
+
+      return (response as List).map((e) => ReservationModel.fromJson(e)).toList();
+    }
+  }
+
+  /// Batalkan reservasi oleh pengguna (status -> CANCELLED)
+  static Future<void> cancelReservation(String reservationId) async {
+    await client
+        .from('reservations')
+        .update({'status': 'CANCELLED'})
+        .eq('id', reservationId);
   }
 
   /// Memanggil Edge Function `approve-reservation` (khusus role Admin)

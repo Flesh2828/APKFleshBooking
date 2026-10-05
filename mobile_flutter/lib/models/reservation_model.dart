@@ -1,3 +1,5 @@
+import 'room_model.dart';
+
 class ReservationModel {
   final String id;
   final String userId;
@@ -12,6 +14,7 @@ class ReservationModel {
   final String? notes;
   final String status; // 'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'COMPLETED'
   final DateTime createdAt;
+  final RoomModel? room;
 
   ReservationModel({
     required this.id,
@@ -27,9 +30,17 @@ class ReservationModel {
     this.notes,
     required this.status,
     required this.createdAt,
+    this.room,
   });
 
   factory ReservationModel.fromJson(Map<String, dynamic> json) {
+    RoomModel? parsedRoom;
+    if (json['rooms'] != null && json['rooms'] is Map<String, dynamic>) {
+      parsedRoom = RoomModel.fromJson(json['rooms']);
+    } else if (json['room'] != null && json['room'] is Map<String, dynamic>) {
+      parsedRoom = RoomModel.fromJson(json['room']);
+    }
+
     return ReservationModel(
       id: json['id'] as String,
       userId: json['user_id'] as String,
@@ -44,6 +55,9 @@ class ReservationModel {
       notes: json['notes'] as String?,
       status: json['status'] as String? ?? 'PENDING',
       createdAt: DateTime.parse(json['created_at'] as String),
+      room: parsedRoom,
     );
   }
+
+  String get roomDisplayName => room?.name ?? 'Ruangan #$roomId';
 }
