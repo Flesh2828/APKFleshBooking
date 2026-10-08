@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import '../../theme/app_theme.dart';
+import '../../utils/date_formatter.dart';
 import '../../models/reservation_model.dart';
 import '../../services/supabase_service.dart';
+import '../../widgets/shimmer_loading.dart';
 
 class ApprovalsTab extends StatefulWidget {
   const ApprovalsTab({super.key});
@@ -13,7 +15,6 @@ class ApprovalsTab extends StatefulWidget {
 class _ApprovalsTabState extends State<ApprovalsTab> {
   List<ReservationModel> _pendingReservations = [];
   bool _isLoading = true;
-  String? _errorMessage;
 
   @override
   void initState() {
@@ -22,52 +23,60 @@ class _ApprovalsTabState extends State<ApprovalsTab> {
   }
 
   Future<void> _fetchPendingReservations() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final all = await SupabaseService.getAllReservations();
-      if (mounted) {
-        setState(() {
-          _pendingReservations = all.where((r) => r.status.toUpperCase() == 'PENDING').toList();
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = e.toString();
-          _isLoading = false;
-        });
-      }
+    setState(() => _isLoading = true);
+    final all = await SupabaseService.getAllReservations();
+    if (mounted) {
+      setState(() {
+        _pendingReservations =
+            all.where((r) => r.status.toUpperCase() == 'PENDING').toList();
+        _isLoading = false;
+      });
     }
   }
 
-  Future<void> _handleDecision(ReservationModel resv, String action) async {
-    final isApprove = action == 'APPROVED';
+  Future<void> _handleDecision(ReservationModel resv, bool isApprove) async {
     final reasonController = TextEditingController();
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(isApprove ? 'Setujui Pengajuan?' : 'Tolak Pengajuan?'),
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+          side: const BorderSide(color: AppColors.borderSubtle),
+        ),
+        title: Text(
+          isApprove ? 'Setujui Pengajuan?' : 'Tolak Pengajuan?',
+          style: TextStyle(
+            color: isApprove
+                ? AppColors.statusAvailable
+                : AppColors.statusRejected,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               '${resv.roomDisplayName}\nOleh: ${resv.userName} (${resv.organization})',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+                fontSize: 13,
+              ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: reasonController,
+              style: const TextStyle(color: AppColors.textPrimary),
               decoration: InputDecoration(
-                labelText: isApprove ? 'Catatan (Opsional)' : 'Alasan Penolakan (Wajib)',
-                border: const OutlineInputBorder(),
-                hintText: isApprove ? 'cth: Kunci diambil di pos satpam' : 'cth: Ruangan dipakai ujian fakultas',
+                labelText: isApprove
+                    ? 'Catatan Persetujuan (Opsional)'
+                    : 'Alasan Penolakan (Wajib) *',
+                hintText: isApprove
+                    ? 'cth: Kunci diambil di pos keamanan'
+                    : 'cth: Ruangan dipakai agenda rektorat',
               ),
               maxLines: 2,
             ),
@@ -82,234 +91,230 @@ class _ApprovalsTabState extends State<ApprovalsTab> {
             onPressed: () {
               if (!isApprove && reasonController.text.trim().isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Alasan penolakan harus diisi')),
+                  const SnackBar(
+                    content: Text('Alasan penolakan harus diisi'),
+                    backgroundColor: AppColors.statusPending,
+                  ),
                 );
                 return;
               }
               Navigator.pop(ctx, true);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: isApprove ? Colors.green : Colors.red,
+              backgroundColor: isApprove
+                  ? AppColors.statusAvailable
+                  : AppColors.statusRejected,
             ),
-            child: Text(
-              isApprove ? 'Setujui' : 'Tolak',
-              style: const TextStyle(color: Colors.white),
-            ),
+            child: Text(isApprove ? 'Setujui' : 'Tolak'),
           ),
         ],
       ),
     );
 
     if (confirmed == true) {
-      try {
-        await SupabaseService.approveReservationViaEdgeFunction(
-          reservationId: resv.id,
-          action: action,
-          reason: reasonController.text.trim().isEmpty ? null : reasonController.text.trim(),
+      if (isApprove) {
+        await SupabaseService.approveReservation(
+          resv.id,
+          reason: reasonController.text.trim().isNotEmpty
+              ? reasonController.text.trim()
+              : null,
         );
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(isApprove ? 'Reservasi telah disetujui' : 'Reservasi telah ditolak'),
-              backgroundColor: isApprove ? Colors.green : Colors.red,
+      } else {
+        await SupabaseService.rejectReservation(
+          resv.id,
+          reason: reasonController.text.trim(),
+        );
+      }
+      _fetchPendingReservations();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isApprove
+                  ? 'Reservasi ${resv.id} berhasil disetujui!'
+                  : 'Reservasi ${resv.id} telah ditolak.',
             ),
-          );
-          _fetchPendingReservations();
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Gagal memproses: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+            backgroundColor: isApprove
+                ? AppColors.statusAvailable
+                : AppColors.statusRejected,
+          ),
+        );
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final dateFormat = DateFormat('EEEE, d MMM yyyy', 'id_ID');
-    final timeFormat = DateFormat('HH:mm');
-
-    return RefreshIndicator(
-      onRefresh: _fetchPendingReservations,
-      child: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Gagal memuat daftar persetujuan:\n$_errorMessage',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(color: Colors.red),
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton.icon(
-                          onPressed: _fetchPendingReservations,
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('Coba Lagi'),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              : _pendingReservations.isEmpty
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.check_circle_outline_rounded, size: 64, color: Colors.green.shade300),
-                            const SizedBox(height: 16),
-                            const Text(
-                              'Semua Bersih!',
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 6),
-                            const Text(
-                              'Tidak ada pengajuan peminjaman ruangan yang menunggu persetujuan saat ini.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: Colors.grey, fontSize: 13),
-                            ),
-                          ],
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: _isLoading
+          ? ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: 3,
+              itemBuilder: (_, __) => const ShimmerReservationCard(),
+            )
+          : _pendingReservations.isEmpty
+              ? const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.check_circle_outline_rounded,
+                          size: 56, color: AppColors.statusAvailable),
+                      SizedBox(height: 12),
+                      Text(
+                        'Semua Pengajuan Telah Ditinjau',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
                         ),
                       ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _pendingReservations.length,
-                      itemBuilder: (context, index) {
-                        final resv = _pendingReservations[index];
+                      SizedBox(height: 4),
+                      Text(
+                        'Tidak ada antrean pending saat ini.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _fetchPendingReservations,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _pendingReservations.length,
+                    itemBuilder: (context, index) {
+                      final resv = _pendingReservations[index];
+                      final startFormatted =
+                          DateFormatterIndo.formatDateTime(resv.startTime);
+                      final endFormatted =
+                          DateFormatterIndo.formatTime(resv.endTime);
 
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 14),
-                          elevation: 1.5,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            side: BorderSide(color: Colors.orange.shade200),
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 14),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: AppColors.statusPending.withValues(alpha: 0.4),
                           ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      resv.id,
-                                      style: TextStyle(
-                                        color: Colors.orange.shade900,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                      decoration: BoxDecoration(
-                                        color: Colors.orange.shade50,
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(color: Colors.orange.shade300),
-                                      ),
-                                      child: Text(
-                                        'Perlu Ditinjau',
-                                        style: TextStyle(
-                                          color: Colors.orange.shade800,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
                                 Text(
-                                  resv.roomDisplayName,
+                                  resv.id,
                                   style: const TextStyle(
-                                    fontSize: 16,
+                                    fontFamily: 'monospace',
+                                    fontSize: 12,
                                     fontWeight: FontWeight.bold,
+                                    color: AppColors.primaryLight,
                                   ),
                                 ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  'Pemohon: ${resv.userName.isNotEmpty ? resv.userName : 'Pengguna'} (${resv.organization})',
-                                  style: TextStyle(color: Colors.grey.shade800, fontSize: 13),
-                                ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Icon(Icons.calendar_today_outlined, size: 14, color: Colors.grey.shade600),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      dateFormat.format(resv.startTime),
-                                      style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Icon(Icons.access_time, size: 14, color: Colors.grey.shade600),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '${timeFormat.format(resv.startTime)} - ${timeFormat.format(resv.endTime)} WIB',
-                                      style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Tujuan: ${resv.purpose} • ${resv.participantCount} Orang',
-                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                                ),
-                                if (resv.notes != null && resv.notes!.isNotEmpty) ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Catatan: ${resv.notes}',
-                                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12, fontStyle: FontStyle.italic),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.statusPendingBg
+                                        .withValues(alpha: 0.3),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                        color: AppColors.statusPending),
                                   ),
-                                ],
-                                const SizedBox(height: 14),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: OutlinedButton.icon(
-                                        onPressed: () => _handleDecision(resv, 'REJECTED'),
-                                        icon: const Icon(Icons.close, size: 16, color: Colors.red),
-                                        label: const Text('Tolak', style: TextStyle(color: Colors.red)),
-                                        style: OutlinedButton.styleFrom(
-                                          side: const BorderSide(color: Colors.red),
-                                          padding: const EdgeInsets.symmetric(vertical: 10),
-                                        ),
-                                      ),
+                                  child: const Text(
+                                    'Menunggu Review',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.statusPending,
                                     ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: ElevatedButton.icon(
-                                        onPressed: () => _handleDecision(resv, 'APPROVED'),
-                                        icon: const Icon(Icons.check, size: 16, color: Colors.white),
-                                        label: const Text('Setujui', style: TextStyle(color: Colors.white)),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.green,
-                                          padding: const EdgeInsets.symmetric(vertical: 10),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                                  ),
                                 ),
                               ],
                             ),
-                          ),
-                        );
-                      },
-                    ),
+                            const SizedBox(height: 10),
+                            Text(
+                              resv.purpose,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Pemohon: ${resv.userName} (${resv.organization}) • ${resv.participantCount} Orang',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceVariant,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.meeting_room_outlined,
+                                      size: 15, color: AppColors.primaryLight),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      '${resv.roomDisplayName} ($startFormatted - $endFormatted WIB)',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                OutlinedButton(
+                                  onPressed: () =>
+                                      _handleDecision(resv, false),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: AppColors.statusRejected,
+                                    side: const BorderSide(
+                                        color: AppColors.statusRejected),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 8),
+                                  ),
+                                  child: const Text('Tolak'),
+                                ),
+                                const SizedBox(width: 10),
+                                ElevatedButton(
+                                  onPressed: () =>
+                                      _handleDecision(resv, true),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.statusAvailable,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 18, vertical: 8),
+                                  ),
+                                  child: const Text('Setujui'),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
     );
   }
 }

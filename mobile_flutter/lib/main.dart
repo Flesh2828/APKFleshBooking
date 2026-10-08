@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'theme/app_theme.dart';
+import 'utils/date_formatter.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_navigation_screen.dart';
+import 'screens/booking_form_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Inisialisasi locale formatting agar tidak terjadi LocaleDataException
+  await DateFormatterIndo.ensureInitialized();
 
   // Inisialisasi Supabase Client
   await Supabase.initialize(
@@ -21,29 +27,15 @@ class RoomBookApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final session = Supabase.instance.client.auth.currentSession;
-
     return MaterialApp(
       title: 'RoomBook Mobile',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF2563EB), // Blue primary
-          brightness: Brightness.light,
-        ),
-        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.white,
-          surfaceTintColor: Colors.transparent,
-        ),
-      ),
-      // Jika session aktif langsung ke MainNavigationScreen, sebaliknya ke LoginScreen
-      initialRoute: session != null ? '/main' : '/login',
+      theme: AppTheme.darkTheme,
+      initialRoute: '/main',
       routes: {
         '/login': (context) => const LoginScreen(),
         '/main': (context) => const MainNavigationScreen(),
-        '/rooms': (context) => const MainNavigationScreen(),
+        '/booking': (context) => const BookingFormScreen(),
       },
     );
   }

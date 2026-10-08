@@ -1,0 +1,257 @@
+import '../models/room_model.dart';
+import '../models/reservation_model.dart';
+import '../models/user_model.dart';
+
+class SeedData {
+  static final List<UserModel> demoUsers = [
+    UserModel(
+      id: 'usr-mhs1',
+      name: 'Rizky Pratama',
+      email: 'mahasiswa@roombook.ac.id',
+      role: 'MAHASISWA',
+      department: 'Badan Eksekutif Mahasiswa (BEM)',
+      phone: '0857-1122-3344',
+      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+    ),
+    UserModel(
+      id: 'usr-dosen',
+      name: 'Dr. Maya Anggraini, S.T., M.T.',
+      email: 'dosen@roombook.ac.id',
+      role: 'DOSEN',
+      department: 'Departemen Teknik Informatika',
+      phone: '0813-9876-5432',
+      avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80',
+    ),
+    UserModel(
+      id: 'usr-admin',
+      name: 'Dr. Ir. Budi Santoso, M.Kom',
+      email: 'admin@roombook.ac.id',
+      role: 'ADMIN',
+      department: 'Bagian Sarana & Prasarana Kampus',
+      phone: '0812-3456-7890',
+      avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80',
+    ),
+  ];
+
+  static final List<RoomModel> initialRooms = [
+    RoomModel(
+      id: 'room-auditorium',
+      name: 'Auditorium Utama Graha Wiyata',
+      building: 'Gedung Rektorat Lt. 3',
+      floor: 3,
+      capacity: 250,
+      facilities: [
+        'Proyektor 4K Laser',
+        'Sound System 5000W',
+        'AC Central',
+        'Podium & 4 Mic Wireless',
+        'Lighting Panggung'
+      ],
+      status: 'ACTIVE',
+      openingHour: '08:00',
+      closingHour: '18:00',
+      imageUrl: 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=800&q=80',
+      description: 'Ruangan serbaguna skala besar untuk seminar nasional, simposium ilmiah, kuliah tamu, dan pelantikan organisasi mahasiswa.',
+    ),
+    RoomModel(
+      id: 'room-lab-ai',
+      name: 'Laboratorium Riset AI & Komputer Terpadu',
+      building: 'Gedung Sains & Teknologi Lt. 2',
+      floor: 2,
+      capacity: 45,
+      facilities: [
+        '45 PC Workstation i7 RTX 4070',
+        'Dual Proyektor HD',
+        'AC Split 3 Unit',
+        'Gigabit LAN',
+        'Whiteboard Kaca'
+      ],
+      status: 'ACTIVE',
+      openingHour: '08:00',
+      closingHour: '17:00',
+      imageUrl: 'https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=800&q=80',
+      description: 'Ruang komputasi berkecepatan tinggi cocok untuk workshop pemrograman, pelatihan data science, dan sertifikasi IT.',
+    ),
+    RoomModel(
+      id: 'room-smart-class',
+      name: 'Smart Classroom & Hybrid Studio 101',
+      building: 'Gedung Perkuliahan Bersama Lt. 1',
+      floor: 1,
+      capacity: 60,
+      facilities: [
+        'Interactive Smart Board 85 Inch',
+        'Kamera Hybrid Auto-Tracking',
+        'Sound Ceiling',
+        'AC Central',
+        'Meja Kursi Fleksibel'
+      ],
+      status: 'ACTIVE',
+      openingHour: '08:00',
+      closingHour: '17:00',
+      imageUrl: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=800&q=80',
+      description: 'Ruang kelas modern dengan fasilitas pembelajaran interaktif dan siaran langsung kuliah hibrida.',
+    ),
+    RoomModel(
+      id: 'room-rapat-senat',
+      name: 'Ruang Rapat Senat & Eksekutif',
+      building: 'Gedung Rektorat Lt. 2',
+      floor: 2,
+      capacity: 30,
+      facilities: [
+        'Smart TV 75 Inch 4K',
+        'Sistem Video Conference Polycom',
+        'Mic Meja Delegate 20 Unit',
+        'AC Central',
+        'Dispenser & Minibar'
+      ],
+      status: 'ACTIVE',
+      openingHour: '08:00',
+      closingHour: '18:00',
+      imageUrl: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80',
+      description: 'Ruang rapat representatif khusus pimpinan, dewan pertimbangan, dan koordinasi antar fakultas.',
+    ),
+    RoomModel(
+      id: 'room-aula-student',
+      name: 'Aula Kemahasiswaan & Seni',
+      building: 'Gedung Student Center Lt. 1',
+      floor: 1,
+      capacity: 120,
+      facilities: [
+        'Panggung Portable',
+        'Sound System 2000W',
+        'Proyektor HD',
+        'Kipas Angin Turbin & AC',
+        'Lantai Parquet Karpet'
+      ],
+      status: 'ACTIVE',
+      openingHour: '08:00',
+      closingHour: '20:00',
+      imageUrl: 'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=800&q=80',
+      description: 'Pusat aktivitas ormawa untuk latihan seni, musyawarah besar, bazar dalam ruangan, dan expo UKM.',
+    ),
+    RoomModel(
+      id: 'room-diskusi-library',
+      name: 'Ruang Diskusi & Workshop Perpustakaan 2B',
+      building: 'Gedung Perpustakaan Pusat Lt. 2',
+      floor: 2,
+      capacity: 20,
+      facilities: [
+        'Smart TV 55 Inch',
+        'Whiteboard Lebar',
+        'AC Split',
+        'Colokan Listrik Tiap Meja',
+        'Wi-Fi Eduroam Dedicated'
+      ],
+      status: 'ACTIVE',
+      openingHour: '08:30',
+      closingHour: '16:30',
+      imageUrl: 'https://images.unsplash.com/photo-1577495508048-b635879837f1?auto=format&fit=crop&w=800&q=80',
+      description: 'Ruang kedap suara untuk diskusi kelompok terfokus, bimbingan tugas akhir, dan rapat kerja kepanitiaan kecil.',
+    ),
+  ];
+
+  static DateTime _offsetTime(int days, int hours, [int minutes = 0]) {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day + days, hours, minutes);
+  }
+
+  static List<ReservationModel> getInitialReservations() {
+    final roomsMap = {for (var r in initialRooms) r.id: r};
+
+    return [
+      ReservationModel(
+        id: 'RB-202609-001',
+        userId: 'usr-mhs1',
+        roomId: 'room-auditorium',
+        userName: 'Rizky Pratama',
+        organization: 'BEM Universitas',
+        startTime: _offsetTime(0, 9, 0),
+        endTime: _offsetTime(0, 12, 0),
+        purpose: 'Seminar Nasional Transformasi Digital Kampus 2026',
+        participantCount: 200,
+        additionalFacilities: '2 Pointer Wireless, 1 Mic Cadangan, Meja Registrasi Depan',
+        notes: 'Mohon sound system dicek H-1 jam sebelum acara.',
+        status: 'APPROVED',
+        createdAt: _offsetTime(-2, 10, 0),
+        room: roomsMap['room-auditorium'],
+      ),
+      ReservationModel(
+        id: 'RB-202609-002',
+        userId: 'usr-dosen',
+        roomId: 'room-smart-class',
+        userName: 'Dr. Maya Anggraini',
+        organization: 'Prodi Teknik Informatika',
+        startTime: _offsetTime(0, 13, 0),
+        endTime: _offsetTime(0, 15, 30),
+        purpose: 'Kuliah Tamu Industri: Deep Learning in Healthcare',
+        participantCount: 50,
+        additionalFacilities: 'Kamera Hybrid streaming Zoom aktif',
+        notes: 'Akan dihadiri dosen tamu dari University of Technology.',
+        status: 'APPROVED',
+        createdAt: _offsetTime(-1, 8, 30),
+        room: roomsMap['room-smart-class'],
+      ),
+      ReservationModel(
+        id: 'RB-202609-003',
+        userId: 'usr-mhs1',
+        roomId: 'room-lab-ai',
+        userName: 'Rizky Pratama',
+        organization: 'Himpunan Mahasiswa Informatika (HMIF)',
+        startTime: _offsetTime(1, 10, 0),
+        endTime: _offsetTime(1, 13, 0),
+        purpose: 'Bootcamp Hands-on Web Development Next.js & AI',
+        participantCount: 40,
+        additionalFacilities: 'Akses administrator pada PC Lab',
+        notes: 'Peserta mahasiswa angkatan 2024 dan 2025.',
+        status: 'PENDING',
+        createdAt: _offsetTime(0, 8, 15),
+        room: roomsMap['room-lab-ai'],
+      ),
+      ReservationModel(
+        id: 'RB-202609-004',
+        userId: 'usr-admin',
+        roomId: 'room-rapat-senat',
+        userName: 'Dr. Ir. Budi Santoso',
+        organization: 'Bagian Sarana & Prasarana Kampus',
+        startTime: _offsetTime(1, 14, 0),
+        endTime: _offsetTime(1, 16, 30),
+        purpose: 'Rapat Koordinasi Persiapan Yudisium Semester Ganjil',
+        participantCount: 22,
+        additionalFacilities: 'Coffee break dan proyektor presentasi',
+        notes: 'Dihadiri para Wakil Dekan Bidang Akademik.',
+        status: 'PENDING',
+        createdAt: _offsetTime(0, 8, 45),
+        room: roomsMap['room-rapat-senat'],
+      ),
+      ReservationModel(
+        id: 'RB-202609-005',
+        userId: 'usr-mhs1',
+        roomId: 'room-aula-student',
+        userName: 'Rizky Pratama',
+        organization: 'Unit Kegiatan Mahasiswa Seni',
+        startTime: _offsetTime(-1, 15, 0),
+        endTime: _offsetTime(-1, 18, 0),
+        purpose: 'Gladi Bersih Festival Kebudayaan Mahasiswa',
+        participantCount: 90,
+        status: 'COMPLETED',
+        createdAt: _offsetTime(-4, 9, 0),
+        room: roomsMap['room-aula-student'],
+      ),
+      ReservationModel(
+        id: 'RB-202609-006',
+        userId: 'usr-mhs1',
+        roomId: 'room-diskusi-library',
+        userName: 'Rizky Pratama',
+        organization: 'Panitia Pemilu Raya Mahasiswa',
+        startTime: _offsetTime(-2, 10, 0),
+        endTime: _offsetTime(-2, 12, 0),
+        purpose: 'Rapat Pleno Penetapan Calon Presma',
+        participantCount: 15,
+        status: 'REJECTED',
+        notes: 'Ditolak karena ruangan telah dialokasikan untuk visitasi asesor BAN-PT.',
+        createdAt: _offsetTime(-5, 11, 0),
+        room: roomsMap['room-diskusi-library'],
+      ),
+    ];
+  }
+}
