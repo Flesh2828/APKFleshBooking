@@ -39,9 +39,33 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
 
   // 3. Rincian Kegiatan
   final _purposeController = TextEditingController();
-  final _participantCountController = TextEditingController(text: '30');
+  int? _selectedParticipantCount;
   final _additionalFacilitiesController = TextEditingController();
   final _notesController = TextEditingController();
+
+  // Helper untuk mendapatkan opsi jumlah peserta berdasarkan kapasitas ruangan
+  List<int> _getParticipantOptions(int maxCapacity) {
+    if (maxCapacity <= 0) return [10];
+
+    final List<int> candidates;
+    if (maxCapacity <= 20) {
+      candidates = [5, 10, 15];
+    } else if (maxCapacity <= 40) {
+      candidates = [5, 10, 15, 20, 25, 30, 35];
+    } else if (maxCapacity <= 70) {
+      candidates = [10, 15, 20, 25, 30, 40, 50, 60];
+    } else if (maxCapacity <= 120) {
+      candidates = [15, 25, 30, 40, 50, 60, 75, 80, 100];
+    } else {
+      candidates = [25, 50, 75, 100, 125, 150, 175, 200, 225];
+    }
+
+    final options = candidates.where((c) => c < maxCapacity).toList();
+    if (!options.contains(maxCapacity)) {
+      options.add(maxCapacity);
+    }
+    return options;
+  }
 
   // 4. Lampiran Dokumen (file_picker)
   PlatformFile? _pickedFile;
@@ -88,7 +112,6 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
     _nameController.dispose();
     _organizationController.dispose();
     _purposeController.dispose();
-    _participantCountController.dispose();
     _additionalFacilitiesController.dispose();
     _notesController.dispose();
     super.dispose();
@@ -103,6 +126,15 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
           _selectedRoomId = widget.preselectedRoom!.id;
         } else if (list.isNotEmpty) {
           _selectedRoomId = list.first.id;
+        }
+
+        final currentRoom = _rooms.where((r) => r.id == _selectedRoomId).firstOrNull ??
+            widget.preselectedRoom;
+        if (currentRoom != null) {
+          final options = _getParticipantOptions(currentRoom.capacity);
+          _selectedParticipantCount = options.contains(30)
+              ? 30
+              : (options.length > 1 ? options[options.length ~/ 2] : options.first);
         }
         _isLoadingRooms = false;
       });
@@ -249,7 +281,11 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
       }
 
       // 2. Buat reservasi
-      final count = int.tryParse(_participantCountController.text.trim()) ?? 10;
+      final currentRoom = _rooms.where((r) => r.id == _selectedRoomId).firstOrNull ??
+          widget.preselectedRoom;
+      final roomCap = currentRoom?.capacity ?? 50;
+      final count = _selectedParticipantCount ??
+          (roomCap < 30 ? roomCap : 30);
       final newRes = await SupabaseService.createReservation(
         roomId: _selectedRoomId!,
         startTime: startDateTime,
@@ -393,6 +429,7 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                     subtitle: 'Pilih fasilitas dan jadwal pemakaian',
                     children: [
                       DropdownButtonFormField<String>(
+                        isExpanded: true,
                         initialValue: _selectedRoomId,
                         dropdownColor: AppColors.surfaceVariant,
                         decoration: const InputDecoration(
@@ -414,7 +451,22 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                         }).toList(),
                         onChanged: (val) {
                           if (val != null) {
-                            setState(() => _selectedRoomId = val);
+                            setState(() {
+                              _selectedRoomId = val;
+                              final room = _rooms.where((r) => r.id == val).firstOrNull;
+                              if (room != null) {
+                                final options = _getParticipantOptions(room.capacity);
+                                if (_selectedParticipantCount == null ||
+                                    _selectedParticipantCount! > room.capacity) {
+                                  _selectedParticipantCount = options.last;
+                                } else if (!options.contains(_selectedParticipantCount)) {
+                                  _selectedParticipantCount = options.lastWhere(
+                                    (o) => o <= _selectedParticipantCount!,
+                                    orElse: () => options.first,
+                                  );
+                                }
+                              }
+                            });
                           }
                         },
                       ),
@@ -561,19 +613,61 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                             : null,
                       ),
                       const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _participantCountController,
-                        keyboardType: TextInputType.number,
-                        style: const TextStyle(color: AppColors.textPrimary),
-                        decoration: const InputDecoration(
-                          labelText: 'Estimasi Jumlah Peserta *',
-                          prefixIcon: Icon(Icons.groups_outlined),
-                          suffixText: 'Orang',
-                        ),
-                        validator: (v) {
-                          if (v == null || v.isEmpty) return 'Jumlah wajib diisi';
-                          if (int.tryParse(v) == null) return 'Harus angka valid';
-                          return null;
+                      // Kapasitas Berdasarkan Ruangan
+                      Builder(
+                        builder: (context) {
+                          final currentRoom = _rooms.where((r) => r.id == _selectedRoomId).firstOrNull ??
+                              widget.preselectedRoom;
+                          final roomCapacity = currentRoom?.capacity ?? 50;
+                          final participantOptions = _getParticipantOptions(roomCapacity);
+                          final currentValue = participantOptions.contains(_selectedParticipantCount)
+                              ? _selectedParticipantCount
+                              : participantOptions.last;
+
+                          return DropdownButtonFormField<int>(
+                            key: ValueKey('participant_${_selectedRoomId}_$currentValue'),
+                            isExpanded: true,
+                            initialValue: currentValue,
+                            dropdownColor: AppColors.surfaceVariant,
+                            decoration: InputDecoration(
+                              labelText: 'Estimasi Jumlah Peserta *',
+                              helperText:
+                                  'Maksimal kapasitas ruangan ini: $roomCapacity orang',
+                              helperStyle: const TextStyle(
+                                color: AppColors.primaryLight,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              prefixIcon: const Icon(Icons.groups_outlined),
+                            ),
+                            items: participantOptions.map((count) {
+                              final isMax = count == roomCapacity;
+                              return DropdownMenuItem<int>(
+                                value: count,
+                                child: Text(
+                                  isMax
+                                      ? '$count Orang (Maksimal Kapasitas Ruangan)'
+                                      : '$count Orang',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight:
+                                        isMax ? FontWeight.bold : FontWeight.normal,
+                                    color: isMax
+                                        ? AppColors.primaryLight
+                                        : AppColors.textPrimary,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (val) {
+                              if (val != null) {
+                                setState(() => _selectedParticipantCount = val);
+                              }
+                            },
+                            validator: (v) =>
+                                v == null ? 'Silakan pilih jumlah peserta' : null,
+                          );
                         },
                       ),
                       const SizedBox(height: 12),

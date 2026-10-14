@@ -190,6 +190,7 @@ class _AvailabilityCalendarScreenState
                         ),
                         const SizedBox(height: 8),
                         DropdownButtonFormField<String>(
+                          isExpanded: true,
                           initialValue: _selectedRoomId,
                           dropdownColor: AppColors.surfaceVariant,
                           decoration: const InputDecoration(
@@ -233,44 +234,51 @@ class _AvailabilityCalendarScreenState
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(
-                                Icons.calendar_month_rounded,
-                                color: AppColors.primaryLight,
-                                size: 22,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Tanggal Ditinjau',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: AppColors.textMuted,
-                                    fontWeight: FontWeight.w500,
-                                  ),
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                Text(
-                                  dateFormatted,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: AppColors.textPrimary,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                child: const Icon(
+                                  Icons.calendar_month_rounded,
+                                  color: AppColors.primaryLight,
+                                  size: 22,
                                 ),
-                              ],
-                            ),
-                          ],
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Tanggal Ditinjau',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.textMuted,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    Text(
+                                      dateFormatted,
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        color: AppColors.textPrimary,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
+                        const SizedBox(width: 8),
                         ElevatedButton.icon(
                           onPressed: _pickDate,
                           icon: const Icon(Icons.edit_calendar_outlined,
@@ -296,7 +304,7 @@ class _AvailabilityCalendarScreenState
                       Expanded(
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 10),
+                              horizontal: 10, vertical: 10),
                           decoration: BoxDecoration(
                             color: AppColors.statusAvailableBg.withValues(alpha: 0.3),
                             borderRadius: BorderRadius.circular(12),
@@ -309,12 +317,16 @@ class _AvailabilityCalendarScreenState
                               const Icon(Icons.check_circle_rounded,
                                   size: 16, color: AppColors.statusAvailable),
                               const SizedBox(width: 6),
-                              Text(
-                                '$availableCount Slot Bebas Bentrok',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.statusAvailable,
+                              Expanded(
+                                child: Text(
+                                  '$availableCount Bebas Bentrok',
+                                  style: const TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.statusAvailable,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
@@ -325,7 +337,7 @@ class _AvailabilityCalendarScreenState
                       Expanded(
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 10),
+                              horizontal: 10, vertical: 10),
                           decoration: BoxDecoration(
                             color: AppColors.statusRejectedBg.withValues(alpha: 0.3),
                             borderRadius: BorderRadius.circular(12),
@@ -338,12 +350,16 @@ class _AvailabilityCalendarScreenState
                               const Icon(Icons.cancel_rounded,
                                   size: 16, color: AppColors.statusRejected),
                               const SizedBox(width: 6),
-                              Text(
-                                '${10 - availableCount} Slot Terpakai',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.statusRejected,
+                              Expanded(
+                                child: Text(
+                                  '${10 - availableCount} Slot Terpakai',
+                                  style: const TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.statusRejected,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
@@ -375,7 +391,7 @@ class _AvailabilityCalendarScreenState
                     return Container(
                       margin: const EdgeInsets.only(bottom: 10),
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 14),
+                          horizontal: 12, vertical: 12),
                       decoration: BoxDecoration(
                         color: isBooked
                             ? AppColors.surface.withValues(alpha: 0.6)
@@ -392,7 +408,7 @@ class _AvailabilityCalendarScreenState
                           // Clock range
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 6),
+                                horizontal: 8, vertical: 6),
                             decoration: BoxDecoration(
                               color: isBooked
                                   ? AppColors.statusRejectedBg.withValues(alpha: 0.4)
@@ -402,7 +418,7 @@ class _AvailabilityCalendarScreenState
                             child: Text(
                               timeRange,
                               style: TextStyle(
-                                fontSize: 12,
+                                fontSize: 11.5,
                                 fontWeight: FontWeight.bold,
                                 color: isBooked
                                     ? AppColors.statusRejected
@@ -410,7 +426,7 @@ class _AvailabilityCalendarScreenState
                               ),
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 10),
 
                           // Slot Details
                           Expanded(
@@ -430,16 +446,20 @@ class _AvailabilityCalendarScreenState
                                       ),
                                     ),
                                     const SizedBox(width: 6),
-                                    Text(
-                                      isBooked
-                                          ? 'Terpakai / Terisi'
-                                          : 'Tersedia / Siap Dipesan',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: isBooked
-                                            ? AppColors.statusRejected
-                                            : AppColors.statusAvailable,
+                                    Expanded(
+                                      child: Text(
+                                        isBooked
+                                            ? 'Terpakai'
+                                            : 'Tersedia',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: isBooked
+                                              ? AppColors.statusRejected
+                                              : AppColors.statusAvailable,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
                                   ],
@@ -459,6 +479,7 @@ class _AvailabilityCalendarScreenState
                               ],
                             ),
                           ),
+                          const SizedBox(width: 8),
 
                           // Action CTA
                           if (!isBooked)
@@ -478,9 +499,9 @@ class _AvailabilityCalendarScreenState
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.primary,
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 8),
+                                    horizontal: 12, vertical: 8),
                                 textStyle: const TextStyle(
-                                  fontSize: 12,
+                                  fontSize: 11.5,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
