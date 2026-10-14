@@ -547,11 +547,15 @@ class _MyReservationsTabState extends State<MyReservationsTab> {
               const Icon(Icons.group_outlined,
                   size: 14, color: AppColors.textMuted),
               const SizedBox(width: 6),
-              Text(
-                '${res.organization} (${res.participantCount} Orang)',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
+              Expanded(
+                child: Text(
+                  '${res.organization} (${res.participantCount} Orang)',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -593,11 +597,15 @@ class _MyReservationsTabState extends State<MyReservationsTab> {
                     const Icon(Icons.schedule_rounded,
                         size: 15, color: AppColors.textMuted),
                     const SizedBox(width: 8),
-                    Text(
-                      '$startFormatted - $endFormatted WIB',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
+                    Expanded(
+                      child: Text(
+                        '$startFormatted - $endFormatted WIB',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],

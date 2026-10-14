@@ -35,15 +35,19 @@ class ReservationModel {
 
   factory ReservationModel.fromJson(Map<String, dynamic> json) {
     RoomModel? parsedRoom;
-    if (json['rooms'] != null && json['rooms'] is Map<String, dynamic>) {
-      parsedRoom = RoomModel.fromJson(json['rooms']);
+    if (json['rooms'] != null) {
+      if (json['rooms'] is Map<String, dynamic>) {
+        parsedRoom = RoomModel.fromJson(json['rooms'] as Map<String, dynamic>);
+      } else if (json['rooms'] is List && (json['rooms'] as List).isNotEmpty) {
+        parsedRoom = RoomModel.fromJson((json['rooms'] as List).first as Map<String, dynamic>);
+      }
     } else if (json['room'] != null && json['room'] is Map<String, dynamic>) {
-      parsedRoom = RoomModel.fromJson(json['room']);
+      parsedRoom = RoomModel.fromJson(json['room'] as Map<String, dynamic>);
     }
 
     return ReservationModel(
       id: json['id'] as String,
-      userId: json['user_id'] as String,
+      userId: json['user_id'] as String? ?? 'usr-mhs1',
       roomId: json['room_id'] as String,
       userName: json['user_name'] as String? ?? '',
       organization: json['organization'] as String? ?? '',
@@ -54,7 +58,9 @@ class ReservationModel {
       additionalFacilities: json['additional_facilities'] as String?,
       notes: json['notes'] as String?,
       status: json['status'] as String? ?? 'PENDING',
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'] as String)
+          : DateTime.now(),
       room: parsedRoom,
     );
   }

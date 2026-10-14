@@ -78,6 +78,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
+        titleSpacing: 16,
         title: Row(
           children: [
             Container(
@@ -89,13 +90,17 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               child: const Icon(Icons.meeting_room_rounded,
                   size: 18, color: Colors.white),
             ),
-            const SizedBox(width: 10),
-            Text(
-              titles[safeIndex],
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 17,
-                color: AppColors.textPrimary,
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                titles[safeIndex],
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15.5,
+                  color: AppColors.textPrimary,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -122,30 +127,31 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               },
               borderRadius: BorderRadius.circular(20),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: AppColors.surfaceVariant,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: AppColors.borderSubtle),
                 ),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     CircleAvatar(
-                      radius: 11,
+                      radius: 10,
                       backgroundColor: AppColors.primary,
                       child: Text(
                         _currentUser.name.isNotEmpty
                             ? _currentUser.name[0].toUpperCase()
                             : 'U',
                         style: const TextStyle(
-                            fontSize: 11,
+                            fontSize: 10,
                             fontWeight: FontWeight.bold,
                             color: Colors.white),
                       ),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 5),
                     Text(
-                      _currentUser.roleLabel,
+                      _currentUser.role == 'ADMIN' ? 'Admin' : _currentUser.roleLabel,
                       style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,

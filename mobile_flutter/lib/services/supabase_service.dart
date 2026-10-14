@@ -159,14 +159,69 @@ class SupabaseService {
   // RESERVATIONS (FETCH, FILTER & ACTIONS)
   // ==========================================
 
-  static Future<List<ReservationModel>> getAllReservations() async {
-    try {
-      final response = await client
-          .from('reservations')
-          .select('*, rooms(*)')
-          .order('start_time', ascending: false);
+  static bool _realtimeInitialized = false;
 
-      final list = (response as List).map((e) => ReservationModel.fromJson(e)).toList();
+  static void initRealtime() {
+    if (_realtimeInitialized) return;
+    _realtimeInitialized = true;
+    try {
+      client
+          .channel('public:reservations')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'reservations',
+            callback: (payload) {
+              getAllReservations();
+            },
+          )
+          .subscribe();
+    } catch (_) {}
+  }
+
+  static Future<List<ReservationModel>> getAllReservations() async {
+    initRealtime();
+    try {
+      dynamic response;
+      try {
+        response = await client
+            .from('reservations')
+            .select('*, rooms(*)')
+            .order('start_time', ascending: false);
+      } catch (_) {
+        response = await client
+            .from('reservations')
+            .select('*')
+            .order('start_time', ascending: false);
+      }
+
+      final list = (response as List).map((e) {
+        final res = ReservationModel.fromJson(e);
+        if (res.room == null) {
+          final roomMatch = _cachedRooms.firstWhere(
+            (r) => r.id == res.roomId,
+            orElse: () => _cachedRooms.first,
+          );
+          return ReservationModel(
+            id: res.id,
+            userId: res.userId,
+            roomId: res.roomId,
+            userName: res.userName,
+            organization: res.organization,
+            startTime: res.startTime,
+            endTime: res.endTime,
+            purpose: res.purpose,
+            participantCount: res.participantCount,
+            additionalFacilities: res.additionalFacilities,
+            notes: res.notes,
+            status: res.status,
+            createdAt: res.createdAt,
+            room: roomMatch,
+          );
+        }
+        return res;
+      }).toList();
+
       if (list.isNotEmpty) {
         _cachedReservations = list;
         _reservationsStreamController.add(_cachedReservations);
@@ -258,12 +313,8 @@ class SupabaseService {
     try {
       await client.from('reservations').insert({
         'id': newId,
-        'user_id': _currentUser.id.startsWith('usr-')
-            ? '00000000-0000-0000-0000-000000000001'
-            : _currentUser.id,
-        'room_id': roomId.startsWith('room-')
-            ? '00000000-0000-0000-0000-000000000002'
-            : roomId,
+        'user_id': _currentUser.id,
+        'room_id': roomId,
         'user_name': _currentUser.name,
         'organization': organization,
         'start_time': startTime.toUtc().toIso8601String(),

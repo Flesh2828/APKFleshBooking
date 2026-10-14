@@ -165,6 +165,18 @@ export const StorageService = {
   // RESERVATIONS
   getReservations: (): Reservation[] => safeGet(STORAGE_KEYS.RESERVATIONS, INITIAL_RESERVATIONS),
   
+  syncFromRemote: (remoteReservations: Reservation[]): void => {
+    if (typeof window === 'undefined') return;
+    const local = safeGet<Reservation[]>(STORAGE_KEYS.RESERVATIONS, INITIAL_RESERVATIONS);
+    const map = new Map<string, Reservation>();
+    local.forEach((r) => map.set(r.id, r));
+    remoteReservations.forEach((r) => map.set(r.id, r));
+    const merged = Array.from(map.values()).sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    safeSet(STORAGE_KEYS.RESERVATIONS, merged);
+  },
+  
   findConflicts: (
     roomId: string,
     startTime: string,

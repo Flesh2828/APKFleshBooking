@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { User, Room, Reservation, ReservationLog, InAppNotification } from '@/types';
 import { StorageService } from '@/lib/storage';
 import { INITIAL_USERS } from '@/lib/data';
+import { supabase } from '@/lib/supabase';
 
 interface Toast {
   id: string;
@@ -77,9 +78,66 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setNotifications(loadedNotifications);
   };
 
+  // Load & sync from Supabase
+  const fetchFromSupabase = React.useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('reservations')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!error && data && data.length > 0) {
+        const mapped: Reservation[] = data.map((r: any) => ({
+          id: r.id,
+          userId: r.user_id,
+          roomId: r.room_id,
+          userName: r.user_name,
+          organization: r.organization,
+          startTime: r.start_time,
+          endTime: r.end_time,
+          purpose: r.purpose,
+          participantCount: r.participant_count,
+          additionalFacilities: r.additional_facilities || '',
+          notes: r.notes || '',
+          status: r.status,
+          createdAt: r.created_at,
+          updatedAt: r.updated_at,
+        }));
+        StorageService.syncFromRemote(mapped);
+        setReservations(StorageService.getReservations());
+      }
+    } catch (e) {
+      console.warn('Supabase sync skipped:', e);
+    }
+  }, []);
+
   useEffect(() => {
     refreshData();
-  }, []);
+    fetchFromSupabase();
+
+    // Subscribe to realtime changes from Mobile Flutter App
+    const channel = supabase
+      .channel('roombook_realtime_reservations')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'reservations' },
+        (payload) => {
+          fetchFromSupabase();
+          if (payload.eventType === 'INSERT') {
+            const p = payload.new as any;
+            addToast(`Pemesanan baru dari mobile: "${p.purpose || p.id}"`, 'info');
+          } else if (payload.eventType === 'UPDATE') {
+            const p = payload.new as any;
+            addToast(`Status reservasi ${p.id} diupdate: ${p.status}`, 'info');
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchFromSupabase]);
 
   const addToast = (message: string, type: Toast['type'] = 'info') => {
     const id = `toast-${Date.now()}-${Math.random()}`;
@@ -150,6 +208,25 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     if (res.success && res.reservation) {
       refreshData();
       addToast(`Pengajuan berhasil terkirim! No. ID: ${res.reservation.id}`, 'success');
+
+      // Sync to Supabase
+      supabase
+        .from('reservations')
+        .insert({
+          id: res.reservation.id,
+          user_id: res.reservation.userId,
+          room_id: res.reservation.roomId,
+          user_name: res.reservation.userName,
+          organization: res.reservation.organization,
+          start_time: res.reservation.startTime,
+          end_time: res.reservation.endTime,
+          purpose: res.reservation.purpose,
+          participant_count: res.reservation.participantCount,
+          additional_facilities: res.reservation.additionalFacilities,
+          notes: res.reservation.notes,
+          status: 'PENDING',
+        })
+        .then(() => fetchFromSupabase());
     } else if (res.error) {
       addToast(res.error, 'error');
     }
@@ -161,6 +238,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     if (res.success) {
       refreshData();
       addToast('Reservasi telah disetujui.', 'success');
+
+      // Sync to Supabase
+      supabase
+        .from('reservations')
+        .update({
+          status: 'APPROVED',
+          notes: reason ? `[Disetujui: ${reason}]` : undefined,
+        })
+        .eq('id', id)
+        .then(() => fetchFromSupabase());
     } else if (res.error) {
       addToast(res.error, 'error');
     }
@@ -172,6 +259,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     if (res.success) {
       refreshData();
       addToast('Pengajuan reservasi telah ditolak.', 'warning');
+
+      // Sync to Supabase
+      supabase
+        .from('reservations')
+        .update({
+          status: 'REJECTED',
+          notes: `[Ditolak: ${reason}]`,
+        })
+        .eq('id', id)
+        .then(() => fetchFromSupabase());
     } else if (res.error) {
       addToast(res.error, 'error');
     }
@@ -183,6 +280,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     if (res.success) {
       refreshData();
       addToast('Reservasi berhasil dibatalkan.', 'info');
+
+      // Sync to Supabase
+      supabase
+        .from('reservations')
+        .update({ status: 'CANCELLED' })
+        .eq('id', id)
+        .then(() => fetchFromSupabase());
     } else if (res.error) {
       addToast(res.error, 'error');
     }
