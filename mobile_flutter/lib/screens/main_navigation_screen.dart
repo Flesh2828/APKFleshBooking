@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../models/user_model.dart';
@@ -20,11 +21,25 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
   UserModel _currentUser = SupabaseService.currentUser;
+  StreamSubscription<UserModel>? _userSubscription;
 
   @override
   void initState() {
     super.initState();
     _loadUser();
+    _userSubscription = SupabaseService.userStream.listen((updatedUser) {
+      if (mounted) {
+        setState(() {
+          _currentUser = updatedUser;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _userSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadUser() async {
@@ -44,9 +59,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isAdminOrDosen = _currentUser.isAdmin || _currentUser.role == 'DOSEN';
+    final isAdmin = _currentUser.isAdmin;
 
-    // 5 Primary Navigation Tabs
+    // 5 Primary Navigation Tabs strictly segmented by Role:
+    // Admin: [Beranda, Ruangan, Kalender, Persetujuan, Profil]
+    // Mahasiswa / Dosen: [Beranda, Ruangan, Kalender, Reservasi Saya, Profil]
     final List<Widget> screens = [
       HomeTab(
         userProfile: _currentUser,
@@ -54,23 +71,21 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       ),
       const RoomsTab(),
       const AvailabilityCalendarScreen(),
-      const MyReservationsTab(),
-      isAdminOrDosen
-          ? const ApprovalsTab()
-          : ProfileTab(
-              userProfile: _currentUser,
-              onProfileUpdated: () {
-                setState(() => _currentUser = SupabaseService.currentUser);
-              },
-            ),
+      isAdmin ? const ApprovalsTab() : const MyReservationsTab(),
+      ProfileTab(
+        userProfile: _currentUser,
+        onProfileUpdated: () {
+          setState(() => _currentUser = SupabaseService.currentUser);
+        },
+      ),
     ];
 
     final List<String> titles = [
       'RoomBook',
       'Katalog Ruangan',
       'Kalender Ketersediaan',
-      'Reservasi Saya',
-      isAdminOrDosen ? 'Persetujuan Pengajuan' : 'Profil Civitas',
+      isAdmin ? 'Persetujuan Pengajuan' : 'Reservasi Saya',
+      isAdmin ? 'Profil Pengelola' : 'Profil Civitas',
     ];
 
     final safeIndex = _currentIndex < screens.length ? _currentIndex : 0;
@@ -169,25 +184,27 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         index: safeIndex,
         children: screens,
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => const BookingFormScreen(),
+      floatingActionButton: isAdmin
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const BookingFormScreen(),
+                  ),
+                );
+              },
+              backgroundColor: AppColors.primary,
+              icon: const Icon(Icons.add_rounded, color: Colors.white),
+              label: const Text(
+                'Booking',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              elevation: 6,
             ),
-          );
-        },
-        backgroundColor: AppColors.primary,
-        icon: const Icon(Icons.add_rounded, color: Colors.white),
-        label: const Text(
-          'Booking',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        elevation: 6,
-      ),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           border: Border(top: BorderSide(color: AppColors.border, width: 1)),
@@ -219,27 +236,27 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   color: AppColors.primaryLight),
               label: 'Kalender',
             ),
-            const NavigationDestination(
-              icon: Icon(Icons.bookmark_border_rounded,
-                  color: AppColors.textMuted),
-              selectedIcon: Icon(Icons.bookmark_rounded,
-                  color: AppColors.primaryLight),
-              label: 'Reservasi',
-            ),
             NavigationDestination(
               icon: Icon(
-                isAdminOrDosen
+                isAdmin
                     ? Icons.fact_check_outlined
-                    : Icons.person_outline_rounded,
+                    : Icons.bookmark_border_rounded,
                 color: AppColors.textMuted,
               ),
               selectedIcon: Icon(
-                isAdminOrDosen
+                isAdmin
                     ? Icons.fact_check_rounded
-                    : Icons.person_rounded,
+                    : Icons.bookmark_rounded,
                 color: AppColors.primaryLight,
               ),
-              label: isAdminOrDosen ? 'Persetujuan' : 'Profil',
+              label: isAdmin ? 'Persetujuan' : 'Reservasi',
+            ),
+            const NavigationDestination(
+              icon: Icon(Icons.person_outline_rounded,
+                  color: AppColors.textMuted),
+              selectedIcon: Icon(Icons.person_rounded,
+                  color: AppColors.primaryLight),
+              label: 'Profil',
             ),
           ],
         ),

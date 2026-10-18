@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/date_formatter.dart';
@@ -6,6 +7,7 @@ import '../../models/reservation_model.dart';
 import '../../models/user_model.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/shimmer_loading.dart';
+import '../../widgets/reservation_detail_modal.dart';
 import '../booking_form_screen.dart';
 import '../availability_calendar_screen.dart';
 
@@ -27,11 +29,25 @@ class _HomeTabState extends State<HomeTab> {
   List<RoomModel> _rooms = [];
   List<ReservationModel> _reservations = [];
   bool _isLoading = true;
+  StreamSubscription<List<ReservationModel>>? _resvSubscription;
 
   @override
   void initState() {
     super.initState();
     _fetchDashboardData();
+    _resvSubscription = SupabaseService.getReservationsStream().listen((updatedList) {
+      if (mounted) {
+        setState(() {
+          _reservations = updatedList;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _resvSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _fetchDashboardData() async {
@@ -49,6 +65,17 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   void _showApprovalDialog(ReservationModel res, bool isApprove) {
+    final user = widget.userProfile ?? SupabaseService.currentUser;
+    if (!user.isAdmin) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Hanya Admin yang berhak menyetujui pengajuan'),
+          backgroundColor: AppColors.statusRejected,
+        ),
+      );
+      return;
+    }
+
     final reasonController = TextEditingController();
     showDialog(
       context: context,
@@ -139,7 +166,7 @@ class _HomeTabState extends State<HomeTab> {
   @override
   Widget build(BuildContext context) {
     final user = widget.userProfile ?? SupabaseService.currentUser;
-    final isAdminOrDosen = user.isAdmin || user.role == 'DOSEN';
+    final isAdmin = user.isAdmin;
 
     // Metrics computation
     final activeRoomsCount = _rooms.where((r) => r.status == 'ACTIVE').length;
@@ -224,7 +251,7 @@ class _HomeTabState extends State<HomeTab> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      isAdminOrDosen
+                      isAdmin
                           ? 'Kelola ketersediaan fasilitas kampus, pantau penggunaan ruangan, dan tindak lanjuti pengajuan pemesanan yang masuk secara real-time.'
                           : 'Temukan ruangan ideal untuk kegiatan akademik, perkuliahan hibrida, maupun agenda organisasi Anda dengan validasi bebas bentrok.',
                       style: TextStyle(
@@ -240,28 +267,45 @@ class _HomeTabState extends State<HomeTab> {
                       spacing: 10,
                       runSpacing: 10,
                       children: [
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const BookingFormScreen(),
+                        if (isAdmin)
+                          ElevatedButton.icon(
+                            onPressed: () => widget.onNavigateToTab(3),
+                            icon: const Icon(Icons.fact_check_rounded, size: 16),
+                            label: const Text('Kelola Persetujuan'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: const Color(0xFF4338CA),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 12),
+                              textStyle: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
                               ),
-                            );
-                          },
-                          icon: const Icon(Icons.add_circle_outline_rounded,
-                              size: 16),
-                          label: const Text('Ajukan Booking Sekarang'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: const Color(0xFF4338CA),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 12),
-                            textStyle: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
+                            ),
+                          )
+                        else
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const BookingFormScreen(),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.add_circle_outline_rounded,
+                                size: 16),
+                            label: const Text('Ajukan Booking Sekarang'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: const Color(0xFF4338CA),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 12),
+                              textStyle: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
-                        ),
                         OutlinedButton.icon(
                           onPressed: () {
                             Navigator.of(context).push(
@@ -340,8 +384,7 @@ class _HomeTabState extends State<HomeTab> {
                             icon: Icons.schedule_rounded,
                             iconColor: AppColors.statusPending,
                             iconBg: AppColors.statusPendingBg.withValues(alpha: 0.3),
-                            onTap: () => widget.onNavigateToTab(
-                                isAdminOrDosen ? 4 : 3),
+                            onTap: () => widget.onNavigateToTab(3),
                           ),
                         ),
                       ],
@@ -357,7 +400,7 @@ class _HomeTabState extends State<HomeTab> {
                             icon: Icons.check_circle_outline_rounded,
                             iconColor: AppColors.statusAvailable,
                             iconBg: AppColors.statusAvailableBg.withValues(alpha: 0.3),
-                            onTap: () => widget.onNavigateToTab(3),
+                            onTap: () => widget.onNavigateToTab(isAdmin ? 2 : 3),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -386,8 +429,8 @@ class _HomeTabState extends State<HomeTab> {
 
               const SizedBox(height: 24),
 
-              // 3. SECTION "PERLU PERSETUJUAN SEGERA" (Khusus Admin / Dosen)
-              if (isAdminOrDosen && pendingReservations.isNotEmpty) ...[
+              // 3. SECTION "PERLU PERSETUJUAN SEGERA" (Khusus Admin)
+              if (isAdmin && pendingReservations.isNotEmpty) ...[
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -419,7 +462,7 @@ class _HomeTabState extends State<HomeTab> {
                       ),
                     ),
                     TextButton(
-                      onPressed: () => widget.onNavigateToTab(4),
+                      onPressed: () => widget.onNavigateToTab(3),
                       child: const Text('Lihat Semua'),
                     ),
                   ],
@@ -427,84 +470,146 @@ class _HomeTabState extends State<HomeTab> {
                 const SizedBox(height: 8),
 
                 ...pendingReservations.take(3).map((res) {
+                  final user = widget.userProfile ?? SupabaseService.currentUser;
+                  final hasAttachment = res.attachmentInfo != null;
+
                   return Container(
                     margin: const EdgeInsets.only(bottom: 10),
-                    padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: AppColors.surface,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: AppColors.borderSubtle),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              res.id,
-                              style: const TextStyle(
-                                fontFamily: 'monospace',
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primaryLight,
-                              ),
-                            ),
-                            Text(
-                              DateFormatterIndo.formatDayTime(res.startTime),
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: AppColors.textMuted,
-                              ),
-                            ),
-                          ],
+                    child: Material(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(16),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () => ReservationDetailModal.show(
+                          context,
+                          reservation: res,
+                          isAdmin: user.isAdmin,
+                          onActionCompleted: _fetchDashboardData,
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          res.purpose,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
+                        child: Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    res.id,
+                                    style: const TextStyle(
+                                      fontFamily: 'monospace',
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.primaryLight,
+                                    ),
+                                  ),
+                                  Text(
+                                    DateFormatterIndo.formatDayTime(res.startTime),
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: AppColors.textMuted,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                res.purpose,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              Text(
+                                '${res.organization} • ${res.roomDisplayName}',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                              if (hasAttachment) ...[
+                                const SizedBox(height: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: AppColors.primaryLight.withValues(alpha: 0.3)),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.attach_file_rounded, size: 14, color: AppColors.primaryLight),
+                                      const SizedBox(width: 4),
+                                      Flexible(
+                                        child: Text(
+                                          res.attachmentInfo!,
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.primaryLight,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(height: 12),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  TextButton.icon(
+                                    onPressed: () => ReservationDetailModal.show(
+                                      context,
+                                      reservation: res,
+                                      isAdmin: user.isAdmin,
+                                      onActionCompleted: _fetchDashboardData,
+                                    ),
+                                    icon: const Icon(Icons.visibility_outlined, size: 14),
+                                    label: const Text('Detail', style: TextStyle(fontSize: 12)),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: AppColors.textSecondary,
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  OutlinedButton(
+                                    onPressed: () => _showApprovalDialog(res, false),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: AppColors.statusRejected,
+                                      side: const BorderSide(
+                                          color: AppColors.statusRejected),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 14, vertical: 8),
+                                      textStyle: const TextStyle(fontSize: 12),
+                                    ),
+                                    child: const Text('Tolak'),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  ElevatedButton(
+                                    onPressed: () => _showApprovalDialog(res, true),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.statusAvailable,
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 14, vertical: 8),
+                                      textStyle: const TextStyle(fontSize: 12),
+                                    ),
+                                    child: const Text('Setujui'),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
-                        Text(
-                          '${res.organization} • ${res.roomDisplayName}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            OutlinedButton(
-                              onPressed: () => _showApprovalDialog(res, false),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: AppColors.statusRejected,
-                                side: const BorderSide(
-                                    color: AppColors.statusRejected),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 8),
-                                textStyle: const TextStyle(fontSize: 12),
-                              ),
-                              child: const Text('Tolak'),
-                            ),
-                            const SizedBox(width: 8),
-                            ElevatedButton(
-                              onPressed: () => _showApprovalDialog(res, true),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.statusAvailable,
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 8),
-                                textStyle: const TextStyle(fontSize: 12),
-                              ),
-                              child: const Text('Setujui'),
-                            ),
-                          ],
-                        ),
-                      ],
+                      ),
                     ),
                   );
                 }),

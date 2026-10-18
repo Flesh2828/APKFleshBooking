@@ -5,6 +5,7 @@ import '../../utils/date_formatter.dart';
 import '../../models/reservation_model.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/shimmer_loading.dart';
+import '../../widgets/reservation_detail_modal.dart';
 import '../booking_form_screen.dart';
 
 class MyReservationsTab extends StatefulWidget {
@@ -210,12 +211,18 @@ class _MyReservationsTabState extends State<MyReservationsTab> {
                           style: TextStyle(
                               fontSize: 12, color: AppColors.textMuted),
                         ),
-                        Text(
-                          '$startFormatted - $endFormatted WIB',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textSecondary,
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '$startFormatted - $endFormatted WIB',
+                            textAlign: TextAlign.right,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textSecondary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
@@ -324,16 +331,16 @@ class _MyReservationsTabState extends State<MyReservationsTab> {
         builder: (context, snapshot) {
           final allData = snapshot.data ?? _reservations;
 
-          // Apply Filter
+          // Apply Filter: Hanya tampilkan reservasi milik akun yang sedang login
           final filtered = allData.where((r) {
             final user = SupabaseService.currentUser;
-            if (!user.isAdmin) {
-              final isOwner = r.userId == user.id ||
-                  (user.role == 'MAHASISWA' && (r.userId == 'usr-mhs1' || r.userId.startsWith('usr-mhs'))) ||
-                  (user.role == 'DOSEN' && (r.userId == 'usr-dosen' || r.userId.startsWith('usr-dosen'))) ||
-                  r.userName.toLowerCase().trim() == user.name.toLowerCase().trim();
-              if (!isOwner) return false;
-            }
+            final isOwner = (r.userId.isNotEmpty && r.userId == user.id) ||
+                (user.email.isNotEmpty &&
+                    r.userId.toLowerCase().trim() == user.email.toLowerCase().trim()) ||
+                (r.userName.isNotEmpty &&
+                    r.userName.toLowerCase().trim() == user.name.toLowerCase().trim());
+            if (!isOwner) return false;
+
             if (_selectedFilter == 'SEMUA') return true;
             return r.status.toUpperCase() == _selectedFilter;
           }).toList();
@@ -458,9 +465,11 @@ class _MyReservationsTabState extends State<MyReservationsTab> {
     final endFormatted =
         DateFormatterIndo.formatTime(res.endTime);
 
+    final attachment = res.attachmentInfo;
+    final cleanNotes = res.cleanNotes;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(18),
@@ -473,198 +482,358 @@ class _MyReservationsTabState extends State<MyReservationsTab> {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Top Row: Code & Status
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: InkWell(
+        onTap: () => ReservationDetailModal.show(
+          context,
+          reservation: res,
+          isAdmin: false,
+          onActionCompleted: _loadReservations,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
-                ),
-                child: Text(
-                  res.id,
-                  style: const TextStyle(
-                    fontFamily: 'monospace',
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primaryLight,
-                  ),
-                ),
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: statusBg.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: statusColor),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: statusColor,
+              // Top Row: Code & Status
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                    ),
+                    child: Text(
+                      res.id,
+                      style: const TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryLight,
                       ),
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      _getStatusLabel(res.status),
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: statusColor,
+                  ),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: statusBg.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: statusColor),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: statusColor,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          _getStatusLabel(res.status),
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: statusColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Purpose & Organization
+              Text(
+                res.purpose,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  const Icon(Icons.group_outlined,
+                      size: 14, color: AppColors.textMuted),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      '${res.organization} (${res.participantCount} Orang)',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+
+              // ML Tags Strip (Naive Bayes Category, SVM Recommendation, No-Show Flag, Energy kWh)
+              if (res.autoCategory != null ||
+                  res.approvalRecommendation != null ||
+                  res.isHighRiskNoShow == true) ...[
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    if (res.autoCategory != null)
+                      Container(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLight.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                              color: AppColors.primaryLight.withValues(alpha: 0.3)),
+                        ),
+                        child: Text(
+                          '🏷️ ${res.autoCategory}',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: AppColors.primaryLight,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    if (res.approvalRecommendation == 'AUTO_APPROVE')
+                      Container(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.statusAvailableBg.withValues(alpha: 0.4),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                              color: AppColors.statusAvailable.withValues(alpha: 0.5)),
+                        ),
+                        child: const Text(
+                          '⚡ Siap Auto-Approve',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: AppColors.statusAvailable,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    if (res.isHighRiskNoShow == true)
+                      Container(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.statusPendingBg.withValues(alpha: 0.4),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                              color: AppColors.statusPending.withValues(alpha: 0.5)),
+                        ),
+                        child: const Text(
+                          '⚠️ Pantau Kehadiran',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: AppColors.statusPending,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    if (res.estimatedEnergyKwh != null)
+                      Container(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceVariant,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: AppColors.borderSubtle),
+                        ),
+                        child: Text(
+                          '⚡ ${res.estimatedEnergyKwh} kWh',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+              ],
+
+              // Room & Time Strip
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.meeting_room_outlined,
+                            size: 15, color: AppColors.primaryLight),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            res.roomDisplayName,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const Icon(Icons.schedule_rounded,
+                            size: 15, color: AppColors.textMuted),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '$startFormatted - $endFormatted WIB',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
 
-          // Purpose & Organization
-          Text(
-            res.purpose,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              const Icon(Icons.group_outlined,
-                  size: 14, color: AppColors.textMuted),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  '${res.organization} (${res.participantCount} Orang)',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
+              // Attachment Highlight Bar
+              if (attachment != null && attachment.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.primaryLight.withValues(alpha: 0.3)),
                   ),
-                  maxLines: 1,
+                  child: Row(
+                    children: [
+                      const Icon(Icons.attach_file_rounded, size: 15, color: AppColors.primaryLight),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Lampiran: $attachment',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryLight,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const Text(
+                        'Lihat Berkas →',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.amberAccent,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
+              if (cleanNotes != null && cleanNotes.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Catatan: $cleanNotes',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textMuted,
+                    fontStyle: FontStyle.italic,
+                  ),
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
+              ],
 
-          // Room & Time Strip
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceVariant,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.meeting_room_outlined,
-                        size: 15, color: AppColors.primaryLight),
+              const SizedBox(height: 14),
+
+              // Action Buttons: Tampilkan QR Pass & Batalkan & Detail
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _showQrPassModal(res),
+                      icon: const Icon(Icons.qr_code_2_rounded, size: 16),
+                      label: const Text('QR Pass'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        textStyle: const TextStyle(
+                            fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => ReservationDetailModal.show(
+                        context,
+                        reservation: res,
+                        isAdmin: false,
+                        onActionCompleted: _loadReservations,
+                      ),
+                      icon: const Icon(Icons.info_outline_rounded, size: 15),
+                      label: const Text('Detail'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primaryLight,
+                        side: const BorderSide(color: AppColors.borderSubtle),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        textStyle: const TextStyle(
+                            fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                  if (isPending) ...[
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(
-                        res.roomDisplayName,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
+                      child: ElevatedButton.icon(
+                        onPressed: () => _handleCancel(res),
+                        icon: const Icon(Icons.cancel_outlined, size: 15),
+                        label: const Text('Batal'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.surfaceElevated,
+                          foregroundColor: AppColors.statusRejected,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          textStyle: const TextStyle(
+                              fontSize: 11, fontWeight: FontWeight.bold),
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    const Icon(Icons.schedule_rounded,
-                        size: 15, color: AppColors.textMuted),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        '$startFormatted - $endFormatted WIB',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          if (res.notes != null && res.notes!.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text(
-              'Catatan: ${res.notes}',
-              style: const TextStyle(
-                fontSize: 11,
-                color: AppColors.textMuted,
-                fontStyle: FontStyle.italic,
+                ],
               ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-
-          const SizedBox(height: 14),
-
-          // Action Buttons: Tampilkan QR Pass & Batalkan
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _showQrPassModal(res),
-                  icon: const Icon(Icons.qr_code_2_rounded, size: 16),
-                  label: const Text('QR Pass / Slip'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    textStyle: const TextStyle(
-                        fontSize: 12, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-              if (isPending) ...[
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => _handleCancel(res),
-                    icon: const Icon(Icons.cancel_outlined, size: 15),
-                    label: const Text('Batalkan'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.surfaceElevated,
-                      foregroundColor: AppColors.statusRejected,
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      textStyle: const TextStyle(
-                          fontSize: 12, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-              ],
             ],
           ),
-        ],
+        ),
       ),
     );
   }

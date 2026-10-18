@@ -286,34 +286,37 @@ class _RoomsTabState extends State<RoomsTab> {
           if (_selectedBuilding != 'Semua' || _selectedCapacityRange != 'Semua')
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: Row(
-                children: [
-                  const Text(
-                    'Filter aktif: ',
-                    style: TextStyle(fontSize: 11, color: AppColors.textMuted),
-                  ),
-                  if (_selectedBuilding != 'Semua')
-                    Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: Chip(
-                        label: Text(_selectedBuilding,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    const Text(
+                      'Filter aktif: ',
+                      style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                    ),
+                    if (_selectedBuilding != 'Semua')
+                      Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: Chip(
+                          label: Text(_selectedBuilding,
+                              style: const TextStyle(fontSize: 10)),
+                          backgroundColor: AppColors.surfaceVariant,
+                          padding: EdgeInsets.zero,
+                          onDeleted: () =>
+                              setState(() => _selectedBuilding = 'Semua'),
+                        ),
+                      ),
+                    if (_selectedCapacityRange != 'Semua')
+                      Chip(
+                        label: Text('Kap: $_selectedCapacityRange',
                             style: const TextStyle(fontSize: 10)),
                         backgroundColor: AppColors.surfaceVariant,
                         padding: EdgeInsets.zero,
                         onDeleted: () =>
-                            setState(() => _selectedBuilding = 'Semua'),
+                            setState(() => _selectedCapacityRange = 'Semua'),
                       ),
-                    ),
-                  if (_selectedCapacityRange != 'Semua')
-                    Chip(
-                      label: Text('Kap: $_selectedCapacityRange',
-                          style: const TextStyle(fontSize: 10)),
-                      backgroundColor: AppColors.surfaceVariant,
-                      padding: EdgeInsets.zero,
-                      onDeleted: () =>
-                          setState(() => _selectedCapacityRange = 'Semua'),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
 
@@ -582,12 +585,15 @@ class _RoomsTabState extends State<RoomsTab> {
                     const Icon(Icons.access_time_rounded,
                         size: 14, color: AppColors.textMuted),
                     const SizedBox(width: 6),
-                    Text(
-                      'Operasional: ${room.openingHour} - ${room.closingHour} WIB',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w500,
+                    Expanded(
+                      child: Text(
+                        'Operasional: ${room.openingHour} - ${room.closingHour} WIB',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],

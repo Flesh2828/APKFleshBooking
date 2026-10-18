@@ -56,6 +56,8 @@ CREATE TABLE public.rooms (
     closing_hour TIME NOT NULL DEFAULT '17:00',
     image_url TEXT,
     description TEXT,
+    base_kwh_per_hour NUMERIC(6, 2) DEFAULT 1.50, -- Linear Reg: Daya rata-rata kWh/jam
+    room_type TEXT DEFAULT 'KELAS',               -- SVM/Linear Reg: 'LAB', 'KELAS', 'AUDITORIUM'
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc', now())
 );
 
@@ -73,6 +75,15 @@ CREATE TABLE public.reservations (
     additional_facilities TEXT,
     notes TEXT,
     status reservation_status NOT NULL DEFAULT 'PENDING',
+    -- Machine Learning (ML) Inference Analytics & Recommendation Columns:
+    auto_category TEXT,                      -- Naive Bayes: 'AKADEMIK', 'ORMAWA', 'SEMINAR', 'UMUM'
+    is_spam BOOLEAN DEFAULT false,           -- Naive Bayes: Flag deteksi teks spam/tidak layak
+    no_show_risk_score NUMERIC(4,3),         -- Logistic Regression: Probabilitas No-Show (0.000 - 1.000)
+    is_high_risk_noshow BOOLEAN,             -- Logistic Regression: Flag risiko tinggi (score >= 0.50)
+    approval_recommendation TEXT,            -- SVM: 'AUTO_APPROVE', 'MANUAL_REVIEW', 'AUTO_REJECT'
+    estimated_occupancy_hours NUMERIC(4,2),  -- Linear Regression: Prediksi jam pemakaian mingguan
+    estimated_energy_kwh NUMERIC(6,2),       -- Linear Regression: Estimasi konsumsi energi listrik (kWh)
+    ml_inferred_at TIMESTAMPTZ,              -- Waktu inferensi dijalankan
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc', now()),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc', now())
 );
@@ -80,6 +91,8 @@ CREATE TABLE public.reservations (
 CREATE INDEX idx_reservations_room_time ON public.reservations (room_id, start_time, end_time);
 CREATE INDEX idx_reservations_user ON public.reservations (user_id);
 CREATE INDEX idx_reservations_status ON public.reservations (status);
+CREATE INDEX idx_reservations_ml_risk ON public.reservations (is_high_risk_noshow);
+CREATE INDEX idx_reservations_approval_rec ON public.reservations (approval_recommendation);
 
 -- 5. RESERVATION LOGS TABLE (Audit Trail)
 CREATE TABLE public.reservation_logs (

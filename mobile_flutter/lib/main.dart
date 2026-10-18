@@ -31,7 +31,7 @@ class RoomBookApp extends StatelessWidget {
       title: 'RoomBook Mobile',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
-      initialRoute: '/main',
+      initialRoute: '/login',
       routes: {
         '/login': (context) => const LoginScreen(),
         '/main': (context) => const MainNavigationScreen(),

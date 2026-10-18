@@ -50,7 +50,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [currentUser, setCurrentUserState] = useState<User>(INITIAL_USERS[0]);
   const [allUsers, setAllUsers] = useState<User[]>(INITIAL_USERS);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [logs, setLogs] = useState<ReservationLog[]>([]);

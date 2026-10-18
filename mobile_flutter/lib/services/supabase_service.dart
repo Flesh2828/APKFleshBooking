@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/room_model.dart';
 import '../models/reservation_model.dart';
 import '../models/user_model.dart';
+import '../models/ml_prediction_model.dart';
 import 'mock_data.dart';
 
 class SupabaseService {
@@ -10,6 +11,7 @@ class SupabaseService {
 
   // Active user session state (supports Supabase Auth + Demo Accounts)
   static UserModel _currentUser = SeedData.demoUsers[0]; // Default: Mahasiswa
+  static bool _isAuthenticated = false;
   static final StreamController<UserModel> _userStreamController =
       StreamController<UserModel>.broadcast();
 
@@ -27,7 +29,7 @@ class SupabaseService {
   // ==========================================
 
   static UserModel get currentUser => _currentUser;
-  static bool get isAuthenticated => true;
+  static bool get isAuthenticated => _isAuthenticated;
   static Stream<UserModel> get userStream => _userStreamController.stream;
 
   static void setCurrentUser(UserModel user) {
@@ -63,6 +65,7 @@ class SupabaseService {
       final profile = await getCurrentUserProfile();
       if (profile != null) {
         _currentUser = profile;
+        _isAuthenticated = true;
         _userStreamController.add(_currentUser);
         return _currentUser;
       }
@@ -71,6 +74,7 @@ class SupabaseService {
     }
 
     _currentUser = demoMatch;
+    _isAuthenticated = true;
     _userStreamController.add(_currentUser);
     return _currentUser;
   }
@@ -80,6 +84,7 @@ class SupabaseService {
       await client.auth.signOut();
     } catch (_) {}
     _currentUser = SeedData.demoUsers[0];
+    _isAuthenticated = false;
     _userStreamController.add(_currentUser);
   }
 
@@ -223,9 +228,25 @@ class SupabaseService {
       }).toList();
 
       if (list.isNotEmpty) {
-        _cachedReservations = list;
+        // Merge list remote dengan _cachedReservations lokal agar pengajuan lokal tidak hilang
+        final map = <String, ReservationModel>{};
+        for (final r in _cachedReservations) {
+          map[r.id] = r;
+        }
+        for (final r in list) {
+          final local = map[r.id];
+          if (local != null) {
+            map[r.id] = r.copyWith(
+              notes: (r.notes != null && r.notes!.isNotEmpty) ? r.notes : local.notes,
+            );
+          } else {
+            map[r.id] = r;
+          }
+        }
+        _cachedReservations = map.values.toList()
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
         _reservationsStreamController.add(_cachedReservations);
-        return list;
+        return _cachedReservations;
       }
     } catch (_) {}
 
@@ -235,16 +256,21 @@ class SupabaseService {
 
   static Future<List<ReservationModel>> getUserReservations() async {
     final all = await getAllReservations();
-    if (_currentUser.isAdmin) {
-      return all;
-    }
+    final user = _currentUser;
     return all.where((r) {
-      return r.userId == _currentUser.id ||
-          (_currentUser.role == 'MAHASISWA' &&
-              (r.userId == 'usr-mhs1' || r.userId.startsWith('usr-mhs'))) ||
-          (_currentUser.role == 'DOSEN' &&
-              (r.userId == 'usr-dosen' || r.userId.startsWith('usr-dosen'))) ||
-          r.userName.toLowerCase().trim() == _currentUser.name.toLowerCase().trim();
+      // 1. Cocokkan ID Pengguna (UUID Supabase atau ID Demo)
+      if (r.userId.isNotEmpty && r.userId == user.id) return true;
+      // 2. Cocokkan Email jika user_id menyimpan email
+      if (user.email.isNotEmpty &&
+          r.userId.toLowerCase().trim() == user.email.toLowerCase().trim()) {
+        return true;
+      }
+      // 3. Cocokkan Nama Lengkap Pemesan jika ID akun demo cocok
+      if (r.userName.isNotEmpty &&
+          r.userName.toLowerCase().trim() == user.name.toLowerCase().trim()) {
+        return true;
+      }
+      return false;
     }).toList();
   }
 
@@ -257,7 +283,7 @@ class SupabaseService {
     _reservationsStreamController.add(List.from(_cachedReservations));
   }
 
-  /// Membuat reservasi baru dengan validasi anti bentrok jadwal
+  /// Membuat reservasi baru dengan validasi anti bentrok jadwal & penanaman hasil inferensi ML
   static Future<ReservationModel> createReservation({
     required String roomId,
     required DateTime startTime,
@@ -268,6 +294,7 @@ class SupabaseService {
     String? additionalFacilities,
     String? notes,
     String? attachmentFileName,
+    MlPredictionBundle? mlPrediction,
   }) async {
     // 1. Cek bentrok jadwal lokal/server
     final conflict = _cachedReservations.any((r) {
@@ -303,7 +330,22 @@ class SupabaseService {
       status: 'PENDING',
       createdAt: DateTime.now(),
       room: targetRoom,
+      autoCategory: mlPrediction?.naiveBayes.predictedCategory,
+      isSpam: mlPrediction?.naiveBayes.isSpam,
+      noShowRiskScore: mlPrediction?.logisticRegression.noShowProbability,
+      isHighRiskNoShow: mlPrediction?.logisticRegression.isHighRisk,
+      approvalRecommendation: mlPrediction?.svm.recommendation,
+      estimatedOccupancyHours: mlPrediction?.linearRegression.predictedWeeklyOccupancyHours,
+      estimatedEnergyKwh: mlPrediction?.linearRegression.estimatedEnergyKwh,
+      mlInferredAt: mlPrediction != null ? DateTime.now() : null,
     );
+
+    if (attachmentFileName != null) {
+      final existingBytes = _attachmentBytesCache[attachmentFileName];
+      if (existingBytes != null) {
+        _attachmentBytesCache[newId] = existingBytes;
+      }
+    }
 
     // 2. Simpan ke local cache
     _cachedReservations.insert(0, newReservation);
@@ -324,16 +366,45 @@ class SupabaseService {
         'additional_facilities': additionalFacilities,
         'notes': newReservation.notes,
         'status': 'PENDING',
+        'auto_category': mlPrediction?.naiveBayes.predictedCategory,
+        'is_spam': mlPrediction?.naiveBayes.isSpam ?? false,
+        'no_show_risk_score': mlPrediction?.logisticRegression.noShowProbability,
+        'is_high_risk_noshow': mlPrediction?.logisticRegression.isHighRisk ?? false,
+        'approval_recommendation': mlPrediction?.svm.recommendation,
+        'estimated_occupancy_hours': mlPrediction?.linearRegression.predictedWeeklyOccupancyHours,
+        'estimated_energy_kwh': mlPrediction?.linearRegression.estimatedEnergyKwh,
+        'ml_inferred_at': mlPrediction != null ? DateTime.now().toUtc().toIso8601String() : null,
       });
     } catch (_) {
-      // Berjalan mulus di mode hybrid
+      try {
+        await client.from('reservations').insert({
+          'id': newId,
+          'user_id': _currentUser.id,
+          'room_id': roomId,
+          'user_name': _currentUser.name,
+          'organization': organization,
+          'start_time': startTime.toUtc().toIso8601String(),
+          'end_time': endTime.toUtc().toIso8601String(),
+          'purpose': purpose,
+          'participant_count': participantCount,
+          'additional_facilities': additionalFacilities,
+          'notes': newReservation.notes,
+          'status': 'PENDING',
+        });
+      } catch (_) {
+        // Local cache tetap aman dan konsisten
+      }
     }
 
     return newReservation;
   }
 
-  /// Persetujuan Reservasi (Admin / Dosen)
+  /// Persetujuan Reservasi (Hanya Admin)
   static Future<void> approveReservation(String id, {String? reason}) async {
+    if (!_currentUser.isAdmin) {
+      throw Exception('Hanya Administrator yang berwenang menyetujui reservasi.');
+    }
+
     final index = _cachedReservations.indexWhere((r) => r.id == id);
     if (index != -1) {
       final old = _cachedReservations[index];
@@ -352,6 +423,14 @@ class SupabaseService {
         status: 'APPROVED',
         createdAt: old.createdAt,
         room: old.room,
+        autoCategory: old.autoCategory,
+        isSpam: old.isSpam,
+        noShowRiskScore: old.noShowRiskScore,
+        isHighRiskNoShow: old.isHighRiskNoShow,
+        approvalRecommendation: old.approvalRecommendation,
+        estimatedOccupancyHours: old.estimatedOccupancyHours,
+        estimatedEnergyKwh: old.estimatedEnergyKwh,
+        mlInferredAt: old.mlInferredAt,
       );
       _notifyReservationsChanged();
     }
@@ -364,8 +443,12 @@ class SupabaseService {
     } catch (_) {}
   }
 
-  /// Penolakan Reservasi (Admin / Dosen)
+  /// Penolakan Reservasi (Hanya Admin)
   static Future<void> rejectReservation(String id, {required String reason}) async {
+    if (!_currentUser.isAdmin) {
+      throw Exception('Hanya Administrator yang berwenang menolak reservasi.');
+    }
+
     final index = _cachedReservations.indexWhere((r) => r.id == id);
     if (index != -1) {
       final old = _cachedReservations[index];
@@ -384,6 +467,14 @@ class SupabaseService {
         status: 'REJECTED',
         createdAt: old.createdAt,
         room: old.room,
+        autoCategory: old.autoCategory,
+        isSpam: old.isSpam,
+        noShowRiskScore: old.noShowRiskScore,
+        isHighRiskNoShow: old.isHighRiskNoShow,
+        approvalRecommendation: old.approvalRecommendation,
+        estimatedOccupancyHours: old.estimatedOccupancyHours,
+        estimatedEnergyKwh: old.estimatedEnergyKwh,
+        mlInferredAt: old.mlInferredAt,
       );
       _notifyReservationsChanged();
     }
@@ -416,6 +507,14 @@ class SupabaseService {
         status: 'CANCELLED',
         createdAt: old.createdAt,
         room: old.room,
+        autoCategory: old.autoCategory,
+        isSpam: old.isSpam,
+        noShowRiskScore: old.noShowRiskScore,
+        isHighRiskNoShow: old.isHighRiskNoShow,
+        approvalRecommendation: old.approvalRecommendation,
+        estimatedOccupancyHours: old.estimatedOccupancyHours,
+        estimatedEnergyKwh: old.estimatedEnergyKwh,
+        mlInferredAt: old.mlInferredAt,
       );
       _notifyReservationsChanged();
     }
@@ -432,10 +531,21 @@ class SupabaseService {
   // STORAGE (FILE PICKER & UPLOAD SURAT IZIN)
   // ==========================================
 
+  static final Map<String, List<int>> _attachmentBytesCache = {};
+
+  static void cacheAttachmentBytes(String identifier, List<int> bytes) {
+    _attachmentBytesCache[identifier] = bytes;
+  }
+
+  static List<int>? getAttachmentBytes(String identifier) {
+    return _attachmentBytesCache[identifier];
+  }
+
   static Future<String?> uploadBookingDocument({
     required String fileName,
     required List<int> fileBytes,
   }) async {
+    _attachmentBytesCache[fileName] = fileBytes;
     try {
       final cleanName = '${DateTime.now().millisecondsSinceEpoch}_$fileName';
       await client.storage.from('booking-documents').uploadBinary(
@@ -443,6 +553,8 @@ class SupabaseService {
             fileBytes as dynamic,
           );
       final publicUrl = client.storage.from('booking-documents').getPublicUrl(cleanName);
+      _attachmentBytesCache[publicUrl] = fileBytes;
+      _attachmentBytesCache[cleanName] = fileBytes;
       return publicUrl;
     } catch (_) {
       // Fallback filename reference

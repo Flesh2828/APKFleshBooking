@@ -60,6 +60,7 @@ export const StorageService = {
     localStorage.setItem(STORAGE_KEYS.LOGS, JSON.stringify(INITIAL_LOGS));
     localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(INITIAL_NOTIFICATIONS));
     localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(INITIAL_USERS[0]));
+    StorageService.setAuthenticated(false);
   },
 
   // USERS & AUTH
@@ -69,10 +70,27 @@ export const StorageService = {
 
   // SESSION
   isAuthenticated: (): boolean => {
-    if (typeof window === 'undefined') return true;
-    return safeGet<boolean>(STORAGE_KEYS.AUTH_SESSION, true);
+    if (typeof window === 'undefined') return false;
+    try {
+      const sessionAuth = sessionStorage.getItem(STORAGE_KEYS.AUTH_SESSION);
+      if (sessionAuth !== null) {
+        return JSON.parse(sessionAuth) === true;
+      }
+    } catch {
+      // ignore
+    }
+    return false;
   },
-  setAuthenticated: (status: boolean) => safeSet(STORAGE_KEYS.AUTH_SESSION, status),
+  setAuthenticated: (status: boolean) => {
+    safeSet(STORAGE_KEYS.AUTH_SESSION, status);
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem(STORAGE_KEYS.AUTH_SESSION, JSON.stringify(status));
+      } catch (err) {
+        console.error('Error writing session auth:', err);
+      }
+    }
+  },
 
   loginWithEmail: (email: string, password: string): { success: boolean; user?: User; error?: string } => {
     const users = safeGet<User[]>(STORAGE_KEYS.USERS, INITIAL_USERS);
@@ -87,7 +105,7 @@ export const StorageService = {
     }
 
     safeSet(STORAGE_KEYS.CURRENT_USER, user);
-    safeSet(STORAGE_KEYS.AUTH_SESSION, true);
+    StorageService.setAuthenticated(true);
     return { success: true, user };
   },
 
@@ -112,7 +130,7 @@ export const StorageService = {
     }
 
     safeSet(STORAGE_KEYS.CURRENT_USER, user);
-    safeSet(STORAGE_KEYS.AUTH_SESSION, true);
+    StorageService.setAuthenticated(true);
     return { success: true, user };
   },
 
@@ -132,13 +150,13 @@ export const StorageService = {
     users.push(created);
     safeSet(STORAGE_KEYS.USERS, users);
     safeSet(STORAGE_KEYS.CURRENT_USER, created);
-    safeSet(STORAGE_KEYS.AUTH_SESSION, true);
+    StorageService.setAuthenticated(true);
 
     return { success: true, user: created };
   },
 
   logout: () => {
-    safeSet(STORAGE_KEYS.AUTH_SESSION, false);
+    StorageService.setAuthenticated(false);
   },
 
   // ROOMS

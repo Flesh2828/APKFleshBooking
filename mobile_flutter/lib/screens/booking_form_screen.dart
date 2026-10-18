@@ -4,6 +4,10 @@ import '../theme/app_theme.dart';
 import '../utils/date_formatter.dart';
 import '../models/room_model.dart';
 import '../services/supabase_service.dart';
+import '../controllers/booking_ml_controller.dart';
+import '../widgets/ml_smart_approval_badge.dart';
+import '../widgets/ml_energy_occupancy_card.dart';
+import '../widgets/ml_no_show_banner.dart';
 
 class BookingFormScreen extends StatefulWidget {
   final RoomModel? preselectedRoom;
@@ -43,6 +47,9 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
   final _additionalFacilitiesController = TextEditingController();
   final _notesController = TextEditingController();
 
+  // 4. Machine Learning Real-Time Controller
+  late final BookingMlController _mlController;
+
   // Helper untuk mendapatkan opsi jumlah peserta berdasarkan kapasitas ruangan
   List<int> _getParticipantOptions(int maxCapacity) {
     if (maxCapacity <= 0) return [10];
@@ -67,7 +74,7 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
     return options;
   }
 
-  // 4. Lampiran Dokumen (file_picker)
+  // 5. Lampiran Dokumen (file_picker)
   PlatformFile? _pickedFile;
 
   bool _isLoadingRooms = true;
@@ -104,17 +111,53 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
       }
     }
 
+    _mlController = BookingMlController();
+    _purposeController.addListener(_triggerMlEvaluation);
+    _notesController.addListener(_triggerMlEvaluation);
+
     _fetchRooms();
   }
 
   @override
   void dispose() {
+    _purposeController.removeListener(_triggerMlEvaluation);
+    _notesController.removeListener(_triggerMlEvaluation);
+    _mlController.dispose();
+
     _nameController.dispose();
     _organizationController.dispose();
     _purposeController.dispose();
     _additionalFacilitiesController.dispose();
     _notesController.dispose();
     super.dispose();
+  }
+
+  void _triggerMlEvaluation() {
+    final currentRoom = _rooms.where((r) => r.id == _selectedRoomId).firstOrNull ??
+        widget.preselectedRoom;
+    if (currentRoom == null) return;
+
+    final startMinutes = _startTime.hour * 60 + _startTime.minute;
+    final endMinutes = _endTime.hour * 60 + _endTime.minute;
+    final diffHours = (endMinutes - startMinutes) / 60.0;
+    final validDuration = diffHours > 0 ? diffHours : 1.0;
+
+    final participantCount = _selectedParticipantCount ??
+        (currentRoom.capacity > 30 ? 30 : currentRoom.capacity);
+
+    final roomType = currentRoom.name.toLowerCase().contains('lab') ? 'LAB' : 'KELAS';
+
+    _mlController.onFormParametersChanged(
+      roomId: currentRoom.id,
+      capacity: currentRoom.capacity,
+      participantCount: participantCount,
+      durationHours: validDuration,
+      userRole: SupabaseService.currentUser.role,
+      pastNoShowCount: 0,
+      purpose: _purposeController.text,
+      roomType: roomType,
+      notes: _notesController.text,
+    );
   }
 
   Future<void> _fetchRooms() async {
@@ -138,6 +181,7 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
         }
         _isLoadingRooms = false;
       });
+      _triggerMlEvaluation();
     }
   }
 
@@ -150,13 +194,17 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
       );
 
       if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
+        if (file.bytes != null) {
+          SupabaseService.cacheAttachmentBytes(file.name, file.bytes!);
+        }
         setState(() {
-          _pickedFile = result.files.first;
+          _pickedFile = file;
         });
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Lampiran terpilih: ${_pickedFile!.name}'),
+              content: Text('Lampiran terpilih: ${file.name}'),
               backgroundColor: AppColors.statusAvailable,
             ),
           );
@@ -197,6 +245,7 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
 
     if (picked != null) {
       setState(() => _selectedDate = picked);
+      _triggerMlEvaluation();
     }
   }
 
@@ -227,6 +276,7 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
           _endTime = picked;
         }
       });
+      _triggerMlEvaluation();
     }
   }
 
@@ -274,10 +324,20 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
       // 1. Upload dokumen jika ada
       String? attachmentUrl;
       if (_pickedFile != null && _pickedFile!.bytes != null) {
+        SupabaseService.cacheAttachmentBytes(
+          _pickedFile!.name,
+          _pickedFile!.bytes!,
+        );
         attachmentUrl = await SupabaseService.uploadBookingDocument(
           fileName: _pickedFile!.name,
           fileBytes: _pickedFile!.bytes!,
         );
+        if (attachmentUrl != null) {
+          SupabaseService.cacheAttachmentBytes(
+            attachmentUrl,
+            _pickedFile!.bytes!,
+          );
+        }
       }
 
       // 2. Buat reservasi
@@ -301,6 +361,7 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
             ? _notesController.text.trim()
             : null,
         attachmentFileName: attachmentUrl ?? _pickedFile?.name,
+        mlPrediction: _mlController.prediction,
       );
 
       if (!mounted) return;
@@ -467,6 +528,7 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                                 }
                               }
                             });
+                            _triggerMlEvaluation();
                           }
                         },
                       ),
@@ -487,20 +549,25 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Row(
-                                children: [
-                                  const Icon(Icons.calendar_today_outlined,
-                                      size: 18, color: AppColors.textMuted),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    DateFormatterIndo.formatFull(_selectedDate),
-                                    style: const TextStyle(
-                                      color: AppColors.textPrimary,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
+                              Expanded(
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.calendar_today_outlined,
+                                        size: 18, color: AppColors.textMuted),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        DateFormatterIndo.formatFull(_selectedDate),
+                                        style: const TextStyle(
+                                          color: AppColors.textPrimary,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                               const Icon(Icons.arrow_drop_down,
                                   color: AppColors.textSecondary),
@@ -663,6 +730,7 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                             onChanged: (val) {
                               if (val != null) {
                                 setState(() => _selectedParticipantCount = val);
+                                _triggerMlEvaluation();
                               }
                             },
                             validator: (v) =>
@@ -694,6 +762,114 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                   ),
 
                   const SizedBox(height: 18),
+
+                  // MACHINE LEARNING INSIGHTS & REAL-TIME EVALUATION
+                  ListenableBuilder(
+                    listenable: _mlController,
+                    builder: (context, _) {
+                      final pred = _mlController.prediction;
+                      final isLoading = _mlController.isLoading;
+
+                      if (pred == null && !isLoading) {
+                        return const SizedBox.shrink();
+                      }
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 18),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceCard,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: AppColors.primaryLight.withValues(alpha: 0.35),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.25),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(
+                                    Icons.psychology_rounded,
+                                    size: 18,
+                                    color: AppColors.primaryLight,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                const Expanded(
+                                  child: Text(
+                                    'Analitik & Rekomendasi Cerdas (AI / ML)',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                if (isLoading)
+                                  const SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: AppColors.primaryLight,
+                                    ),
+                                  )
+                                else
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 7, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.statusAvailableBg
+                                          .withValues(alpha: 0.4),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: const Text(
+                                      'Live Engine',
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.statusAvailable,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            if (pred != null) ...[
+                              const SizedBox(height: 10),
+                              MlSmartApprovalBadge(
+                                svmResult: pred.svm,
+                                naiveBayesResult: pred.naiveBayes,
+                              ),
+                              MlEnergyOccupancyCard(
+                                linearResult: pred.linearRegression,
+                              ),
+                              if (pred.logisticRegression.isHighRisk)
+                                MlNoShowBanner(
+                                  logisticResult: pred.logisticRegression,
+                                ),
+                            ],
+                          ],
+                        ),
+                      );
+                    },
+                  ),
 
                   // SECTION 4: Lampiran Dokumen (file_picker)
                   _buildSectionCard(
@@ -887,25 +1063,27 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                 ),
               ),
               const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: AppColors.textSecondary,
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),
