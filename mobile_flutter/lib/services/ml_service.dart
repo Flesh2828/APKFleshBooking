@@ -38,16 +38,16 @@ class MlInferenceService {
         final data = Map<String, dynamic>.from(response.data as Map);
         return MlPredictionBundle.fromJson(data);
       } else {
-        return _calculateLocalFallback(payload);
+        return calculateLocalFallback(payload);
       }
     } catch (_) {
       // Graceful fallback lokal bila device offline atau Edge Function belum dideploy
-      return _calculateLocalFallback(payload);
+      return calculateLocalFallback(payload);
     }
   }
 
   /// Algoritma Fallback Heuristik Lokal (Matematika & Aturan ML di sisi klien)
-  static MlPredictionBundle _calculateLocalFallback(Map<String, dynamic> data) {
+  static MlPredictionBundle calculateLocalFallback(Map<String, dynamic> data) {
     final duration = (data['duration_hours'] as num?)?.toDouble() ?? 1.0;
     final capacity = (data['capacity'] as num?)?.toInt() ?? 30;
     final participants = (data['participant_count'] as num?)?.toInt() ?? 1;
