@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RoomBook Mobile - Screens 03 & 04</title>
+  <!-- Google Fonts & Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            brand: {
+              teal: '#0D9488',
+              tealDark: '#0F766E',
+              tealLight: '#CCFBF1',
+              charcoal: '#0F172A',
+              slate: '#334155',
+              subtle: '#64748B',
+            },
+            semantic: {
+              available: '#10B981',
+              booked: '#E11D48',
+              pending: '#D97706',
+              maintenance: '#64748B',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Architectural Presentation Canvas */
+    body {
+      background-color: #0B1120;
+      background-image: 
+        radial-gradient(circle at 18% 24%, rgba(13, 148, 136, 0.14) 0%, transparent 45%),
+        radial-gradient(circle at 82% 76%, rgba(14, 165, 233, 0.12) 0%, transparent 40%),
+        linear-gradient(180deg, #090E1A 0%, #0F172A 100%);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      margin: 0;
+      padding: 0;
+      color: #0F172A;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Mobile Frame Dimensions & Background */
+    .mobile-mockup {
+      width: 390px;
+      height: 844px;
+      border-radius: 48px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 
+        0 25px 50px -12px rgba(0, 0, 0, 0.5),
+        0 0 0 10px #1E293B,
+        0 0 0 12px #334155,
+        0 0 40px rgba(13, 148, 136, 0.2);
+      background: linear-gradient(165deg, #F3F6FA 0%, #E3ECF5 45%, #E8F2EE 100%);
+    }
+
+    /* Ambient Mesh Orbs behind glass inside mobile */
+    .mesh-blob-1 {
+      position: absolute;
+      top: -60px;
+      left: -40px;
+      width: 260px;
+      height: 260px;
+      background: radial-gradient(circle, rgba(13, 148, 136, 0.18) 0%, transparent 70%);
+      filter: blur(28px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .mesh-blob-2 {
+      position: absolute;
+      top: 360px;
+      right: -50px;
+      width: 280px;
+      height: 280px;
+      background: radial-gradient(circle, rgba(14, 165, 233, 0.16) 0%, transparent 70%);
+      filter: blur(32px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .mesh-blob-3 {
+      position: absolute;
+      bottom: 20px;
+      left: 10px;
+      width: 240px;
+      height: 240px;
+      background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%);
+      filter: blur(30px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Refined Frosted Light Glassmorphism Tokens */
+    .glass-surface {
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05), inset 0 1px 1px rgba(255, 255, 255, 0.8);
+    }
+
+    .glass-surface-subtle {
+      background: rgba(255, 255, 255, 0.55);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.75);
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.03);
+    }
+
+    .glass-surface-card {
+      background: rgba(255, 255, 255, 0.78);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.95);
+      box-shadow: 0 10px 25px -4px rgba(15, 23, 42, 0.06), 0 4px 10px -2px rgba(15, 23, 42, 0.03);
+    }
+
+    /* Tabular Numerics */
+    .num-tabular {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Dynamic Island notch */
+    .notch {
+      width: 110px;
+      height: 28px;
+      background: #000;
+      border-radius: 20px;
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 12px;
+    }
+    .notch::after {
+      content: '';
+      width: 10px;
+      height: 10px;
+      background: #0f172a;
+      border-radius: 50%;
+      border: 1.5px solid #1e293b;
+    }
+
+    /* Striped maintenance pattern */
+    .maintenance-stripes {
+      background: repeating-linear-gradient(
+        45deg,
+        rgba(100, 116, 139, 0.08),
+        rgba(100, 116, 139, 0.08) 8px,
+        rgba(255, 255, 255, 0.4) 8px,
+        rgba(255, 255, 255, 0.4) 16px
+      );
+    }
+
+    /* Custom Hide Scrollbar */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="p-6 md:p-10 flex flex-col items-center justify-center min-h-screen">
+
+  <!-- Header Showcase Banner -->
+  <header class="w-full max-w-5xl mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+    <div>
+      <div class="flex items-center gap-2 mb-2">
+        <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide bg-teal-500/20 text-teal-300 border border-teal-500/30 flex items-center gap-1.5">
+          <i class="fa-solid fa-layer-group text-[10px]"></i> FLUTTER M3 ARCHITECTURE • SECTION 2B & 3.3–3.4
+        </span>
+        <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold text-slate-400 bg-slate-800/60 border border-slate-700">
+          Mobile 390 × 844 px
+        </span>
+      </div>
+      <h1 class="text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
+        RoomBook Campus Facilities
+        <span class="text-sm font-normal px-2.5 py-0.5 rounded-lg bg-teal-900/60 text-teal-300 border border-teal-700/60 font-mono">v3.2 Production</span>
+      </h1>
+      <p class="text-slate-400 text-sm mt-1">Refined Frosted Light Glassmorphism UI (Screens 03 & 04) with Dynamic Bottom Glass Dock</p>
+    </div>
+
+    <!-- Quick Status Legend Pill -->
+    <div class="flex items-center gap-4 bg-slate-900/80 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-slate-800 shadow-xl">
+      <div class="flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Available
+      </div>
+      <div class="flex items-center gap-1.5 text-xs font-semibold text-rose-400">
+        <span class="w-2 h-2 rounded-full bg-rose-500"></span> Booked
+      </div>
+      <div class="flex items-center gap-1.5 text-xs font-semibold text-amber-400">
+        <span class="w-2 h-2 rounded-full bg-amber-500"></span> Pending
+      </div>
+      <div class="flex items-center gap-1.5 text-xs font-semibold text-slate-400">
+        <span class="w-2 h-2 rounded-full bg-slate-500"></span> Maintenance
+      </div>
+    </div>
+  </header>
+
+  <!-- Screens Container Side-by-Side -->
+  <main class="flex flex-col lg:flex-row items-center justify-center gap-10 max-w-6xl w-full">
+
+    <!-- ========================================================================= -->
+    <!-- SCREEN 03: ROOMS CATALOG (rooms_tab.dart)                                 -->
+    <!-- ========================================================================= -->
+    <div class="flex flex-col items-center">
+      <!-- Screen Top Label -->
+      <div class="w-full flex items-center justify-between mb-3 px-2">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-teal-400"></span>
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-300">SCREEN 03 • KATALOG RUANGAN</span>
+        </div>
+        <span class="text-[11px] font-mono text-slate-400">/rooms_tab (Tab 1)</span>
+      </div>
+
+      <!-- Mobile Device Frame -->
+      <div class="mobile-mockup flex flex-col">
+        <!-- Mesh gradients -->
+        <div class="mesh-blob-1"></div>
+        <div class="mesh-blob-2"></div>
+        <div class="mesh-blob-3"></div>
+
+        <!-- Dynamic Island Notch -->
+        <div class="notch"></div>
+
+        <!-- Status Bar -->
+        <div class="w-full pt-3 px-7 flex items-center justify-between z-40 select-none text-[13px] font-bold text-slate-800">
+          <span class="num-tabular">09:41</span>
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-signal text-[11px]"></i>
+            <i class="fa-solid fa-wifi text-[11px]"></i>
+            <i class="fa-solid fa-battery-full text-[13px]"></i>
+          </div>
+        </div>
+
+        <!-- Scrollable Content Viewport -->
+        <div class="flex-1 overflow-y-auto no-scrollbar pb-28 pt-3 px-4 z-10 flex flex-col gap-3">
+          
+          <!-- Top App Bar & Search Area -->
+          <div class="flex items-center justify-between mt-1 mb-1">
+            <div>
+              <div class="flex items-center gap-1.5">
+                <span class="text-[11px] font-bold tracking-wider text-teal-700 uppercase bg-teal-100/70 border border-teal-200/80 px-2 py-0.5 rounded-md">Fasilitas Kampus</span>
+                <span class="text-[11px] text-slate-500 font-medium">8 Ruangan</span>
+              </div>
+              <h2 class="text-xl font-extrabold text-slate-900 tracking-tight mt-0.5">Katalog Ruangan</h2>
+            </div>
+            <!-- Filter Icon Action -->
+            <button class="w-9 h-9 rounded-xl glass-surface flex items-center justify-center text-slate-700 shadow-sm active:scale-95 transition-transform">
+              <i class="fa-solid fa-sliders text-sm text-teal-700"></i>
+            </button>
+          </div>
+
+          <!-- Frosted Search Bar -->
+          <div class="relative w-full">
+            <div class="glass-surface-card rounded-2xl flex items-center px-3.5 py-2.5 gap-2.5">
+              <i class="fa-solid fa-magnifying-glass text-slate-400 text-sm"></i>
+              <input type="text" placeholder="Cari nama ruangan atau gedung..." class="bg-transparent text-xs w-full text-slate-800 placeholder-slate-400 font-medium focus:outline-none" value="">
+              <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-200/60 text-slate-500 font-semibold">⌘K</span>
+            </div>
+          </div>
+
+          <!-- Horizontal Filter Chips -->
+          <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+            <button class="px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-teal-700 text-white shadow-sm flex items-center gap-1.5 active:scale-95 transition-all">
+              <i class="fa-solid fa-check text-[10px]"></i> Semua Gedung
+            </button>
+            <button class="px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap glass-surface text-slate-700 hover:text-slate-900 border border-white/80 active:scale-95 transition-all">
+              Kapasitas 50+
+            </button>
+            <button class="px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap glass-surface text-slate-700 hover:text-slate-900 border border-white/80 active:scale-95 transition-all flex items-center gap-1.5">
+              <i class="fa-solid fa-desktop text-[10px] text-teal-600"></i> Lab Komputer
+            </button>
+            <button class="px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap glass-surface text-emerald-800 border border-emerald-300/80 bg-emerald-50/60 active:scale-95 transition-all flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Tersedia
+            </button>
+          </div>
+
+          <!-- CARD 1: Auditorium Utama (ACTIVE) -->
+          <div class="glass-surface-card rounded-3xl p-3 flex flex-col gap-2.5 transition-all hover:shadow-md">
+            <!-- Room Image + Overlay Pills -->
+            <div class="relative w-full h-36 rounded-2xl overflow-hidden bg-slate-200">
+              <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCpmnc-JOK2rBn7gZnNCoJ6cV0b7sj_siftuvvIvSailAJ3wr4oTNyD1WafJDyAxtcF6_XmcAUXEyaUkWCLqy65OUHcm1mUZrEFmkQrRlPwsY-xsDCHoU57uGAzxJfsSsliWDg2DGjnW_R8DvbWXgs-IBJjPaKxtT_G_rUWNOL9xCkujC-QRZRqNGH1XK_IUhEo3ETPVbRImi2LUGCvTKWbFPxOvSSapteMiOFGnHw4" alt="Auditorium Utama" class="w-full h-full object-cover">
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-black/20"></div>
+              
+              <!-- Operational Status Pill (Top Left) -->
+              <div class="absolute top-2.5 left-2.5">
+                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase bg-emerald-500 text-white shadow-sm flex items-center gap-1.5 backdrop-blur-md">
+                  <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span> ACTIVE
+                </span>
+              </div>
+
+              <!-- Capacity & Floor Overlay (Bottom) -->
+              <div class="absolute bottom-2.5 left-2.5 right-2.5 flex items-center justify-between text-white">
+                <span class="text-[11px] font-semibold drop-shadow-sm flex items-center gap-1">
+                  <i class="fa-solid fa-building text-[10px] text-teal-300"></i> Gedung Rektorat • Lt. 3
+                </span>
+                <span class="px-2 py-0.5 rounded-lg bg-black/50 backdrop-blur-md text-[11px] font-bold text-white border border-white/20 num-tabular flex items-center gap-1">
+                  <i class="fa-solid fa-users text-[10px]"></i> 120 Orang
+                </span>
+              </div>
+            </div>
+
+            <!-- Title & Details -->
+            <div>
+              <div class="flex items-start justify-between">
+                <div>
+                  <h3 class="text-base font-bold text-slate-900 leading-tight">Auditorium Utama Sriwijaya</h3>
+                  <div class="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
+                    <span class="flex items-center gap-1 text-slate-600 font-medium">
+                      <i class="fa-regular fa-clock text-[11px] text-teal-600"></i> <span class="num-tabular">08:00 - 17:00</span> WIB
+                    </span>
+                    <span>•</span>
+                    <span class="text-teal-700 font-semibold">Tier 1 Venue</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Facility Tags Chips -->
+              <div class="flex items-center gap-1.5 mt-2 flex-wrap">
+                <span class="px-2 py-0.5 rounded-md glass-surface text-[10px] font-medium text-slate-700 flex items-center gap-1 border border-white/70">
+                  <i class="fa-solid fa-video text-teal-600 text-[9px]"></i> Proyektor 4K
+                </span>
+                <span class="px-2 py-0.5 rounded-md glass-surface text-[10px] font-medium text-slate-700 flex items-center gap-1 border border-white/70">
+                  <i class="fa-solid fa-snowflake text-sky-600 text-[9px]"></i> Dual Central AC
+                </span>
+                <span class="px-2 py-0.5 rounded-md glass-surface text-[10px] font-medium text-slate-700 flex items-center gap-1 border border-white/70">
+                  <i class="fa-solid fa-wifi text-emerald-600 text-[9px]"></i> Wi-Fi 6 Dedicated
+                </span>
+                <span class="px-2 py-0.5 rounded-md glass-surface text-[10px] font-medium text-slate-700 flex items-center gap-1 border border-white/70">
+                  <i class="fa-solid fa-volume-high text-amber-600 text-[9px]"></i> Sound System
+                </span>
+              </div>
+
+              <!-- Primary Action CTA -->
+              <div class="mt-3 flex items-center gap-2">
+                <button class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-teal-700 text-white font-bold text-xs shadow-md shadow-teal-700/20 flex items-center justify-center gap-2 active:scale-98 transition-transform">
+                  <span>Pesan Ruangan Ini</span>
+                  <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                </button>
+                <button class="w-10 h-9 rounded-xl glass-surface flex items-center justify-center text-slate-600 hover:text-slate-900 border border-white/90">
+                  <i class="fa-regular fa-calendar-days text-xs text-teal-700"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- CARD 2: Lab Rekayasa Perangkat Lunak (ACTIVE) -->
+          <div class="glass-surface-card rounded-3xl p-3 flex flex-col gap-2.5 transition-all hover:shadow-md">
+            <div class="relative w-full h-32 rounded-2xl overflow-hidden bg-slate-200">
+              <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuBUwfxV_0TBPCGPwKSJS9S1-HrSdNifsbnOL6N-L4qDLaKwGFSZCliyHyJG1usgjkQC87ZAzIKD_YYJbfNnOoQuqD6nl-es7sXYPzjxh-ZPpI5oBi_n_ajqTNuaemrBLlTPXMnHpobN95hAUXDpGQpql4XT9WKFo-t5mBi9SPLV79hR-mROvBFSli0YX8sbTKzVisBLndOMML8I6xAkUxTPkWN25hHQPOQ4H87XV77C" alt="Lab Rekayasa Perangkat Lunak" class="w-full h-full object-cover">
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-black/20"></div>
+              
+              <div class="absolute top-2.5 left-2.5">
+                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase bg-emerald-500 text-white shadow-sm flex items-center gap-1.5 backdrop-blur-md">
+                  <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span> ACTIVE
+                </span>
+              </div>
+
+              <div class="absolute bottom-2.5 left-2.5 right-2.5 flex items-center justify-between text-white">
+                <span class="text-[11px] font-semibold drop-shadow-sm flex items-center gap-1">
+                  <i class="fa-solid fa-building text-[10px] text-teal-300"></i> Gedung Fasilkom • Lt. 3
+                </span>
+                <span class="px-2 py-0.5 rounded-lg bg-black/50 backdrop-blur-md text-[11px] font-bold text-white border border-white/20 num-tabular flex items-center gap-1">
+                  <i class="fa-solid fa-users text-[10px]"></i> 45 Kursi
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex items-start justify-between">
+                <div>
+                  <h3 class="text-base font-bold text-slate-900 leading-tight">Lab Software Engineering (RPL)</h3>
+                  <div class="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
+                    <span class="flex items-center gap-1 text-slate-600 font-medium">
+                      <i class="fa-regular fa-clock text-[11px] text-teal-600"></i> <span class="num-tabular">08:00 - 17:00</span> WIB
+                    </span>
+                    <span>•</span>
+                    <span class="text-teal-700 font-semibold">Dual Monitor Setup</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-1.5 mt-2 flex-wrap">
+                <span class="px-2 py-0.5 rounded-md glass-surface text-[10px] font-medium text-slate-700 flex items-center gap-1 border border-white/70">
+                  <i class="fa-solid fa-desktop text-teal-600 text-[9px]"></i> 45 iMac & PC
+                </span>
+                <span class="px-2 py-0.5 rounded-md glass-surface text-[10px] font-medium text-slate-700 flex items-center gap-1 border border-white/70">
+                  <i class="fa-solid fa-snowflake text-sky-600 text-[9px]"></i> AC
+                </span>
+                <span class="px-2 py-0.5 rounded-md glass-surface text-[10px] font-medium text-slate-700 flex items-center gap-1 border border-white/70">
+                  <i class="fa-solid fa-wifi text-emerald-600 text-[9px]"></i> 1 Gbps LAN
+                </span>
+              </div>
+
+              <div class="mt-3 flex items-center gap-2">
+                <button class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-teal-700 text-white font-bold text-xs shadow-md shadow-teal-700/20 flex items-center justify-center gap-2 active:scale-98 transition-transform">
+                  <span>Pesan Ruangan Ini</span>
+                  <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                </button>
+                <button class="w-10 h-9 rounded-xl glass-surface flex items-center justify-center text-slate-600 hover:text-slate-900 border border-white/90">
+                  <i class="fa-regular fa-calendar-days text-xs text-teal-700"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- CARD 3: Ruang Kolaborasi Kreatif (MAINTENANCE) -->
+          <div class="glass-surface-card rounded-3xl p-3 flex flex-col gap-2.5 opacity-90 border-slate-300">
+            <div class="relative w-full h-32 rounded-2xl overflow-hidden bg-slate-200">
+              <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAWJxXswm4aoVh-oh7nKafUgZzrVKvW9ysSOfXBxUzjyN0StoNBg95dHVNUyrsASSsAuemyupHkRdhEKRwiE3yHl32xuuQlb12hqizRixHypk9Afl3yEYYsEpkug5fP_OGxAz2gwpvqm4Dqcenn9BpgGhRwUilmmoiXB32LKFNq91GqbjmatuDwZ72BaxuJXyL1pospnGb-yhXJjPLx_DD-ZvdZ1A5bgmZkD0Gu39Kd" alt="Ruang Kolaborasi" class="w-full h-full object-cover filter grayscale-[25%]">
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-black/30"></div>
+              
+              <!-- Maintenance Status Pill -->
+              <div class="absolute top-2.5 left-2.5">
+                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide uppercase bg-slate-700 text-white shadow-sm flex items-center gap-1.5 backdrop-blur-md">
+                  <i class="fa-solid fa-wrench text-[9px] text-amber-400"></i> MAINTENANCE
+                </span>
+              </div>
+
+              <div class="absolute bottom-2.5 left-2.5 right-2.5 flex items-center justify-between text-white">
+                <span class="text-[11px] font-semibold drop-shadow-sm flex items-center gap-1">
+                  <i class="fa-solid fa-building text-[10px] text-slate-300"></i> Gedung Kuliah Bersama • Lt. 1
+                </span>
+                <span class="px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-md text-[11px] font-bold text-white border border-white/20 num-tabular flex items-center gap-1">
+                  <i class="fa-solid fa-users text-[10px]"></i> 25 Orang
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex items-start justify-between">
+                <div>
+                  <h3 class="text-base font-bold text-slate-800 leading-tight">Ruang Kolaborasi & Seminar 102</h3>
+                  <div class="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
+                    <span class="flex items-center gap-1 text-slate-600 font-medium">
+                      <i class="fa-regular fa-clock text-[11px] text-slate-500"></i> <span class="num-tabular">08:00 - 17:00</span> WIB
+                    </span>
+                    <span>•</span>
+                    <span class="text-amber-700 font-semibold">Perbaikan AC & Karpet</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-1.5 mt-2 flex-wrap">
+                <span class="px-2 py-0.5 rounded-md glass-surface text-[10px] font-medium text-slate-600 flex items-center gap-1 border border-white/60">
+                  <i class="fa-solid fa-chalkboard text-teal-600 text-[9px]"></i> Smart Digital Whiteboard
+                </span>
+                <span class="px-2 py-0.5 rounded-md glass-surface text-[10px] font-medium text-slate-600 flex items-center gap-1 border border-white/60">
+                  <i class="fa-solid fa-tv text-slate-600 text-[9px]"></i> 75" Display
+                </span>
+              </div>
+
+              <!-- Disabled CTA Button -->
+              <div class="mt-3 flex items-center gap-2">
+                <button disabled class="flex-1 py-2.5 rounded-xl bg-slate-200/80 text-slate-500 font-bold text-xs cursor-not-allowed flex items-center justify-center gap-2 border border-slate-300/60">
+                  <i class="fa-solid fa-ban text-[10px]"></i>
+                  <span>Dalam Pemeliharaan</span>
+                </button>
+                <button class="w-10 h-9 rounded-xl glass-surface flex items-center justify-center text-slate-500 border border-white/80">
+                  <i class="fa-solid fa-circle-info text-xs"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Floating Glass 5-Tab Bottom Navigation Bar + Center FAB -->
+        <div class="absolute bottom-5 left-4 right-4 z-40">
+          <div class="glass-surface-card rounded-3xl py-2 px-3 flex items-center justify-between shadow-xl border border-white/90 relative">
+            
+            <!-- Tab 0: Beranda -->
+            <button class="flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl text-slate-400 hover:text-slate-700 transition-colors">
+              <i class="fa-solid fa-house text-sm"></i>
+              <span class="text-[10px] font-semibold">Beranda</span>
+            </button>
+
+            <!-- Tab 1: Ruangan (ACTIVE) -->
+            <button class="flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl text-teal-700 transition-colors">
+              <div class="relative">
+                <i class="fa-solid fa-table-cells-large text-base"></i>
+                <span class="w-1.5 h-1.5 rounded-full bg-teal-600 absolute -bottom-1 left-1/2 transform -translate-x-1/2"></span>
+              </div>
+              <span class="text-[10px] font-extrabold text-teal-800">Ruangan</span>
+            </button>
+
+            <!-- Center FAB Placeholder Gap -->
+            <div class="w-10"></div>
+
+            <!-- Tab 2: Kalender -->
+            <button class="flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl text-slate-400 hover:text-slate-700 transition-colors">
+              <i class="fa-regular fa-calendar-days text-sm"></i>
+              <span class="text-[10px] font-semibold">Kalender</span>
+            </button>
+
+            <!-- Tab 3: Reservasi -->
+            <button class="flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl text-slate-400 hover:text-slate-700 transition-colors relative">
+              <div class="relative">
+                <i class="fa-solid fa-clock-rotate-left text-sm"></i>
+                <span class="w-2 h-2 rounded-full bg-amber-500 absolute -top-0.5 -right-1 border border-white"></span>
+              </div>
+              <span class="text-[10px] font-semibold">Reservasi</span>
+            </button>
+
+            <!-- Center Emerald Teal + FAB Button (Floating) -->
+            <button class="absolute -top-5 left-1/2 transform -translate-x-1/2 w-12 h-12 rounded-full bg-gradient-to-tr from-teal-600 to-emerald-500 text-white flex items-center justify-center shadow-lg shadow-teal-700/40 border-2 border-white active:scale-95 transition-transform">
+              <i class="fa-solid fa-plus text-base"></i>
+            </button>
+
+          </div>
+        </div>
+
+        <!-- Bottom Home Indicator Bar -->
+        <div class="absolute bottom-1.5 left-1/2 transform -translate-x-1/2 w-32 h-1 bg-slate-400/50 rounded-full z-50"></div>
+      </div>
+    </div>
+
+
+    <!-- ========================================================================= -->
+    <!-- SCREEN 04: HOURLY AVAILABILITY CALENDAR (availability_calendar_screen)   -->
+    <!-- ========================================================================= -->
+    <div class="flex flex-col items-center">
+      <!-- Screen Top Label -->
+      <div class="w-full flex items-center justify-between mb-3 px-2">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-300">SCREEN 04 • KALENDER KETERSEDIAAN</span>
+        </div>
+        <span class="text-[11px] font-mono text-slate-400">/calendar (Tab 2)</span>
+      </div>
+
+      <!-- Mobile Device Frame -->
+      <div class="mobile-mockup flex flex-col">
+        <!-- Mesh gradients -->
+        <div class="mesh-blob-1"></div>
+        <div class="mesh-blob-2"></div>
+        <div class="mesh-blob-3"></div>
+
+        <!-- Dynamic Island Notch -->
+        <div class="notch"></div>
+
+        <!-- Status Bar -->
+        <div class="w-full pt-3 px-7 flex items-center justify-between z-40 select-none text-[13px] font-bold text-slate-800">
+          <span class="num-tabular">09:41</span>
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-signal text-[11px]"></i>
+            <i class="fa-solid fa-wifi text-[11px]"></i>
+            <i class="fa-solid fa-battery-full text-[13px]"></i>
+          </div>
+        </div>
+
+        <!-- Scrollable Content Viewport -->
+        <div class="flex-1 overflow-y-auto no-scrollbar pb-28 pt-3 px-4 z-10 flex flex-col gap-3">
+          
+          <!-- Top Screen Title & Quick Actions -->
+          <div class="flex items-center justify-between mt-1">
+            <div>
+              <span class="text-[11px] font-bold tracking-wider text-teal-700 uppercase bg-teal-100/70 border border-teal-200/80 px-2 py-0.5 rounded-md">Realtime Matrix</span>
+              <h2 class="text-xl font-extrabold text-slate-900 tracking-tight mt-0.5">Jadwal Ruangan</h2>
+            </div>
+            <button class="px-2.5 py-1.5 rounded-xl glass-surface flex items-center gap-1.5 text-xs font-semibold text-slate-700 border border-white/80">
+              <i class="fa-solid fa-rotate text-teal-600 text-[10px]"></i> Live Sync
+            </button>
+          </div>
+
+          <!-- Top Frosted Room Selector Dropdown -->
+          <div class="glass-surface-card rounded-2xl p-2.5 flex items-center justify-between border border-white/95">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-teal-100/80 border border-teal-200 flex items-center justify-center text-teal-700 shadow-inner">
+                <i class="fa-solid fa-landmark text-base"></i>
+              </div>
+              <div>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-teal-700">Pilihan Ruangan</span>
+                <h3 class="text-sm font-extrabold text-slate-900 leading-tight">Auditorium Utama Sriwijaya</h3>
+                <p class="text-[11px] text-slate-500 font-medium">Gedung Rektorat • Lt. 3 (120 Kursi)</p>
+              </div>
+            </div>
+            <div class="w-7 h-7 rounded-lg glass-surface flex items-center justify-center text-slate-500 border border-white">
+              <i class="fa-solid fa-chevron-down text-xs text-teal-700"></i>
+            </div>
+          </div>
+
+          <!-- Horizontal Date Strip Navigator (< Hari Ini, 18 Nov >) -->
+          <div class="glass-surface rounded-2xl p-1.5 flex items-center justify-between border border-white/80 shadow-sm">
+            <button class="w-8 h-8 rounded-xl glass-surface flex items-center justify-center text-slate-600 active:scale-95 transition-transform">
+              <i class="fa-solid fa-chevron-left text-xs"></i>
+            </button>
+
+            <!-- Center Date Badge -->
+            <div class="flex items-center gap-2 px-3 py-1 rounded-xl bg-white/70 shadow-sm border border-white">
+              <i class="fa-regular fa-calendar text-teal-700 text-xs"></i>
+              <span class="text-xs font-bold text-slate-900">Hari Ini, 18 Nov 2026</span>
+              <span class="text-[10px] font-semibold text-emerald-700 bg-emerald-100/80 px-1.5 py-0.5 rounded">Aktif</span>
+            </div>
+
+            <button class="w-8 h-8 rounded-xl glass-surface flex items-center justify-center text-slate-600 active:scale-95 transition-transform">
+              <i class="fa-solid fa-chevron-right text-xs"></i>
+            </button>
+          </div>
+
+          <!-- Date Quick Strip (3 Days view) -->
+          <div class="grid grid-cols-3 gap-2">
+            <div class="py-1.5 px-2 rounded-xl glass-surface text-center opacity-70">
+              <span class="text-[10px] text-slate-500 font-medium">Sen, 17 Nov</span>
+              <div class="text-xs font-bold text-slate-700 num-tabular">Kemarin</div>
+            </div>
+            <div class="py-1.5 px-2 rounded-xl bg-teal-700 text-white text-center shadow-md shadow-teal-700/20">
+              <span class="text-[10px] text-teal-200 font-medium">Sel, 18 Nov</span>
+              <div class="text-xs font-extrabold num-tabular">Hari Ini</div>
+            </div>
+            <div class="py-1.5 px-2 rounded-xl glass-surface text-center opacity-70">
+              <span class="text-[10px] text-slate-500 font-medium">Rab, 19 Nov</span>
+              <div class="text-xs font-bold text-slate-700 num-tabular">Besok</div>
+            </div>
+          </div>
+
+          <!-- Vertical Hourly Timeline Matrix (08:00 - 18:00) -->
+          <div class="flex flex-col gap-2.5 mt-1">
+
+            <!-- SLOT 1: 08:00 - 10:00 (BOOKED - Rose Tint Glass Card) -->
+            <div class="rounded-2xl p-3 bg-rose-50/75 backdrop-blur-md border border-rose-200/90 shadow-sm flex flex-col gap-2 relative overflow-hidden">
+              <!-- Left High-Contrast Indicator Bar -->
+              <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-rose-500"></div>
+
+              <div class="flex items-start justify-between pl-1">
+                <div class="flex items-center gap-2">
+                  <span class="px-2 py-0.5 rounded-md bg-rose-500 text-white font-mono font-bold text-[11px] num-tabular shadow-sm">
+                    08:00 - 10:00
+                  </span>
+                  <span class="px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 text-[10px] font-bold tracking-wide uppercase flex items-center gap-1 border border-rose-200">
+                    <span class="w-1.5 h-1.5 rounded-full bg-rose-600"></span> BOOKED
+                  </span>
+                </div>
+                <span class="text-[10px] font-mono text-rose-700 font-semibold bg-rose-100/80 px-1.5 py-0.5 rounded">RB-202611-002</span>
+              </div>
+
+              <!-- Content of Booked Slot -->
+              <div class="pl-1">
+                <h4 class="text-sm font-bold text-slate-900 leading-snug">Seminar Nasional Transformasi AI Kampus</h4>
+                <div class="flex items-center gap-2 mt-1 text-xs text-slate-600">
+                  <span class="font-semibold text-rose-900 flex items-center gap-1">
+                    <i class="fa-solid fa-users-gear text-[10px]"></i> BEM FTI & Himpunan IF
+                  </span>
+                  <span>•</span>
+                  <span class="text-slate-500 num-tabular">Pemohon: Dimas Satrio</span>
+                </div>
+              </div>
+
+              <!-- Locked Badge -->
+              <div class="pl-1 flex items-center justify-between text-[11px] text-rose-700/80 border-t border-rose-200/60 pt-1.5 mt-0.5 font-medium">
+                <span class="flex items-center gap-1">
+                  <i class="fa-solid fa-lock text-[10px]"></i> Slot Resmi Terkunci Sarpras
+                </span>
+                <span class="text-[10px] text-slate-500 num-tabular">110 Peserta</span>
+              </div>
+            </div>
+
+            <!-- SLOT 2: 10:00 - 11:00 (PENDING - Amber Tint Glass Card) -->
+            <div class="rounded-2xl p-3 bg-amber-50/75 backdrop-blur-md border border-amber-200/90 shadow-sm flex flex-col gap-2 relative overflow-hidden">
+              <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-amber-500"></div>
+
+              <div class="flex items-start justify-between pl-1">
+                <div class="flex items-center gap-2">
+                  <span class="px-2 py-0.5 rounded-md bg-amber-500 text-white font-mono font-bold text-[11px] num-tabular shadow-sm">
+                    10:00 - 11:00
+                  </span>
+                  <span class="px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 text-[10px] font-bold tracking-wide uppercase flex items-center gap-1 border border-amber-200">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-600 animate-ping"></span> PENDING REVIEW
+                  </span>
+                </div>
+                <span class="text-[10px] font-mono text-amber-800 font-semibold bg-amber-100/90 px-1.5 py-0.5 rounded">RB-202611-007</span>
+              </div>
+
+              <div class="pl-1">
+                <h4 class="text-sm font-bold text-slate-900 leading-snug">Gladi Bersih Pelantikan Ormawa Fasilkom</h4>
+                <div class="flex items-center gap-2 mt-1 text-xs text-slate-600">
+                  <span class="font-semibold text-amber-900 flex items-center gap-1">
+                    <i class="fa-solid fa-building-columns text-[10px]"></i> DPM & BEM
+                  </span>
+                  <span>•</span>
+                  <span class="text-slate-500">Sedang Ditinjau Admin</span>
+                </div>
+              </div>
+
+              <div class="pl-1 flex items-center justify-between text-[11px] text-amber-800 border-t border-amber-200/60 pt-1.5 mt-0.5 font-medium">
+                <span class="flex items-center gap-1">
+                  <i class="fa-solid fa-hourglass-half text-[10px]"></i> Menunggu Verifikasi Sarpras
+                </span>
+                <span class="text-[10px] text-slate-500 num-tabular">60 Peserta</span>
+              </div>
+            </div>
+
+            <!-- SLOT 3: 11:00 - 14:00 (AVAILABLE - Clean Emerald Translucent Glass Slot) -->
+            <div class="rounded-2xl p-3 bg-emerald-50/70 backdrop-blur-md border-2 border-dashed border-emerald-400/90 shadow-sm flex flex-col gap-2 relative overflow-hidden">
+              <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-emerald-500"></div>
+
+              <div class="flex items-start justify-between pl-1">
+                <div class="flex items-center gap-2">
+                  <span class="px-2 py-0.5 rounded-md bg-emerald-600 text-white font-mono font-bold text-[11px] num-tabular shadow-sm">
+                    11:00 - 14:00
+                  </span>
+                  <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold tracking-wide uppercase flex items-center gap-1 border border-emerald-300">
+                    <i class="fa-solid fa-circle-check text-[10px] text-emerald-600"></i> AVAILABLE
+                  </span>
+                </div>
+                <span class="text-[11px] font-bold text-emerald-700 num-tabular">Rentang 3 Jam Bebas</span>
+              </div>
+
+              <div class="pl-1 flex items-center justify-between">
+                <div>
+                  <h4 class="text-sm font-extrabold text-slate-900 leading-snug">Slot Ruangan Kosong & Siap Pakai</h4>
+                  <p class="text-xs text-slate-600 mt-0.5">Tidak ada bentrok jadwal pada interval waktu ini.</p>
+                </div>
+              </div>
+
+              <!-- Interactive CTA Button -->
+              <div class="pl-1 mt-1">
+                <button class="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white font-bold text-xs shadow-md shadow-emerald-700/25 flex items-center justify-center gap-2 active:scale-98 transition-transform">
+                  <i class="fa-solid fa-calendar-plus text-xs"></i>
+                  <span>Pesan Jam Ini (11:00 - 14:00)</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- SLOT 4: 14:00 - 15:00 (MAINTENANCE - Muted Striped Slate Glass Block) -->
+            <div class="rounded-2xl p-3 glass-surface maintenance-stripes border border-slate-300/80 shadow-sm flex flex-col gap-1.5 relative overflow-hidden opacity-90">
+              <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-slate-500"></div>
+
+              <div class="flex items-start justify-between pl-1">
+                <div class="flex items-center gap-2">
+                  <span class="px-2 py-0.5 rounded-md bg-slate-600 text-white font-mono font-bold text-[11px] num-tabular">
+                    14:00 - 15:00
+                  </span>
+                  <span class="px-2 py-0.5 rounded-md bg-slate-200/90 text-slate-700 text-[10px] font-bold tracking-wide uppercase flex items-center gap-1 border border-slate-300">
+                    <i class="fa-solid fa-wrench text-[9px] text-slate-600"></i> MAINTENANCE
+                  </span>
+                </div>
+                <span class="text-[10px] font-medium text-slate-500">Rutin Harian</span>
+              </div>
+
+              <div class="pl-1">
+                <h4 class="text-xs font-bold text-slate-700 leading-snug">Pembersihan Ruang & Kalibrasi Audio Visual</h4>
+                <p class="text-[11px] text-slate-500 mt-0.5">Jadwal steril oleh Tim Sarana & Prasarana Kampus.</p>
+              </div>
+            </div>
+
+            <!-- SLOT 5: 15:00 - 18:00 (AVAILABLE) -->
+            <div class="rounded-2xl p-2.5 bg-emerald-50/50 backdrop-blur-md border border-emerald-300/60 shadow-sm flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded-md bg-emerald-600/80 text-white font-mono font-bold text-[11px] num-tabular">
+                  15:00 - 18:00
+                </span>
+                <span class="text-xs font-bold text-slate-800">Sore (Tersedia)</span>
+              </div>
+              <button class="px-3 py-1 rounded-lg bg-teal-700 text-white text-[11px] font-bold active:scale-95 transition-all">
+                Pilih
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- Floating Glass 5-Tab Bottom Navigation Bar + Center FAB -->
+        <div class="absolute bottom-5 left-4 right-4 z-40">
+          <div class="glass-surface-card rounded-3xl py-2 px-3 flex items-center justify-between shadow-xl border border-white/90 relative">
+            
+            <!-- Tab 0: Beranda -->
+            <button class="flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl text-slate-400 hover:text-slate-700 transition-colors">
+              <i class="fa-solid fa-house text-sm"></i>
+              <span class="text-[10px] font-semibold">Beranda</span>
+            </button>
+
+            <!-- Tab 1: Ruangan -->
+            <button class="flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl text-slate-400 hover:text-slate-700 transition-colors">
+              <i class="fa-solid fa-table-cells-large text-sm"></i>
+              <span class="text-[10px] font-semibold">Ruangan</span>
+            </button>
+
+            <!-- Center FAB Placeholder Gap -->
+            <div class="w-10"></div>
+
+            <!-- Tab 2: Kalender (ACTIVE) -->
+            <button class="flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl text-teal-700 transition-colors">
+              <div class="relative">
+                <i class="fa-solid fa-calendar-days text-base"></i>
+                <span class="w-1.5 h-1.5 rounded-full bg-teal-600 absolute -bottom-1 left-1/2 transform -translate-x-1/2"></span>
+              </div>
+              <span class="text-[10px] font-extrabold text-teal-800">Kalender</span>
+            </button>
+
+            <!-- Tab 3: Reservasi -->
+            <button class="flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl text-slate-400 hover:text-slate-700 transition-colors relative">
+              <div class="relative">
+                <i class="fa-solid fa-clock-rotate-left text-sm"></i>
+                <span class="w-2 h-2 rounded-full bg-amber-500 absolute -top-0.5 -right-1 border border-white"></span>
+              </div>
+              <span class="text-[10px] font-semibold">Reservasi</span>
+            </button>
+
+            <!-- Center Emerald Teal + FAB Button (Floating) -->
+            <button class="absolute -top-5 left-1/2 transform -translate-x-1/2 w-12 h-12 rounded-full bg-gradient-to-tr from-teal-600 to-emerald-500 text-white flex items-center justify-center shadow-lg shadow-teal-700/40 border-2 border-white active:scale-95 transition-transform">
+              <i class="fa-solid fa-plus text-base"></i>
+            </button>
+
+          </div>
+        </div>
+
+        <!-- Bottom Home Indicator Bar -->
+        <div class="absolute bottom-1.5 left-1/2 transform -translate-x-1/2 w-32 h-1 bg-slate-400/50 rounded-full z-50"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Presentation Footer Metadata -->
+  <footer class="mt-8 text-center text-xs text-slate-500 flex flex-col items-center gap-1">
+    <div class="flex items-center gap-2">
+      <span class="font-semibold text-slate-400">RoomBook UI System</span>
+      <span>•</span>
+      <span>Refined Frosted Light Glassmorphism</span>
+      <span>•</span>
+      <span>Flutter Material 3 Architecture</span>
+    </div>
+    <p class="text-[11px] text-slate-600">Strictly follows UI_AUDIT_SPEC.md Section 2B (M03 & M04) & Section 3.3–3.4</p>
+  </footer>
+
+</body>
+</html>

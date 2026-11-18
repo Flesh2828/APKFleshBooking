@@ -1,8 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../models/user_model.dart';
+import '../models/reservation_model.dart';
 import '../services/supabase_service.dart';
+import '../widgets/glass_surface.dart';
+import '../widgets/floating_glass_nav_bar.dart';
 import 'tabs/home_tab.dart';
 import 'tabs/rooms_tab.dart';
 import 'tabs/my_reservations_tab.dart';
@@ -22,6 +26,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
   UserModel _currentUser = SupabaseService.currentUser;
   StreamSubscription<UserModel>? _userSubscription;
+  StreamSubscription<List<ReservationModel>>? _reservationsSubscription;
+  int _pendingCount = 0;
 
   @override
   void initState() {
@@ -34,11 +40,24 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         });
       }
     });
+
+    // Realtime listener untuk badge counter antrean pending
+    _reservationsSubscription = SupabaseService.getReservationsStream().listen((all) {
+      if (mounted) {
+        final pending = _currentUser.isAdmin
+            ? all.where((r) => r.status.toUpperCase() == 'PENDING').length
+            : all.where((r) => r.userId == _currentUser.id && r.status.toUpperCase() == 'PENDING').length;
+        setState(() {
+          _pendingCount = pending;
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
     _userSubscription?.cancel();
+    _reservationsSubscription?.cancel();
     super.dispose();
   }
 
@@ -57,13 +76,21 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     });
   }
 
+  void _openBookingForm() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const BookingFormScreen(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isAdmin = _currentUser.isAdmin;
 
     // 5 Primary Navigation Tabs strictly segmented by Role:
     // Admin: [Beranda, Ruangan, Kalender, Persetujuan, Profil]
-    // Mahasiswa / Dosen: [Beranda, Ruangan, Kalender, Reservasi Saya, Profil]
+    // Mahasiswa / Dosen / Staf: [Beranda, Ruangan, Kalender, Reservasi Saya, Profil]
     final List<Widget> screens = [
       HomeTab(
         userProfile: _currentUser,
@@ -91,175 +118,122 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final safeIndex = _currentIndex < screens.length ? _currentIndex : 0;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        titleSpacing: 16,
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                gradient: AppColors.welcomeGradient,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(Icons.meeting_room_rounded,
-                  size: 18, color: Colors.white),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                titles[safeIndex],
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15.5,
-                  color: AppColors.textPrimary,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          // Profile & Role Chip Button in AppBar
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: InkWell(
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => Scaffold(
-                      appBar: AppBar(title: const Text('Profil & Akun')),
-                      body: ProfileTab(
-                        userProfile: _currentUser,
-                        onProfileUpdated: () {
-                          setState(() => _currentUser = SupabaseService.currentUser);
-                        },
-                      ),
-                    ),
-                  ),
-                );
-              },
-              borderRadius: BorderRadius.circular(20),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceVariant,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.borderSubtle),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+      extendBody: true, // Memungkinkan frosted glass dock membias konten di belakangnya
+      backgroundColor: AppColors.canvasMeshStart,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(60),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: SafeArea(
+            bottom: false,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Brand Logo & Title
+                Row(
                   children: [
-                    CircleAvatar(
-                      radius: 10,
-                      backgroundColor: AppColors.primary,
-                      child: Text(
-                        _currentUser.name.isNotEmpty
-                            ? _currentUser.name[0].toUpperCase()
-                            : 'U',
-                        style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white),
+                    Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        gradient: AppColors.tealGradient,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.brandTeal.withValues(alpha: 0.25),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.meeting_room_rounded,
+                        size: 18,
+                        color: Colors.white,
                       ),
                     ),
-                    const SizedBox(width: 5),
-                    Text(
-                      _currentUser.role == 'ADMIN' ? 'Admin' : _currentUser.roleLabel,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryLight,
-                      ),
+                    const SizedBox(width: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          titles[safeIndex],
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 16,
+                            color: AppColors.textPrimary,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                        if (safeIndex == 0)
+                          Text(
+                            'Campus Facilities Portal',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontWeight: FontWeight.w500,
+                              fontSize: 10.5,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                      ],
                     ),
                   ],
                 ),
-              ),
+
+                // Right Profile & Role Chip (Taps to Tab 4 Profile)
+                InkWell(
+                  onTap: () => _onTabSelected(4),
+                  borderRadius: BorderRadius.circular(20),
+                  child: GlassSurface(
+                    tier: GlassTier.pill,
+                    borderRadius: BorderRadius.circular(20),
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircleAvatar(
+                          radius: 11,
+                          backgroundColor: AppColors.brandTeal,
+                          child: Text(
+                            _currentUser.name.isNotEmpty
+                                ? _currentUser.name[0].toUpperCase()
+                                : 'U',
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          isAdmin ? 'Admin' : _currentUser.roleLabel,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.brandTealDark,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
-      ),
-      body: IndexedStack(
-        index: safeIndex,
-        children: screens,
-      ),
-      floatingActionButton: isAdmin
-          ? null
-          : FloatingActionButton.extended(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const BookingFormScreen(),
-                  ),
-                );
-              },
-              backgroundColor: AppColors.primary,
-              icon: const Icon(Icons.add_rounded, color: Colors.white),
-              label: const Text(
-                'Booking',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              elevation: 6,
-            ),
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          border: Border(top: BorderSide(color: AppColors.border, width: 1)),
         ),
-        child: NavigationBar(
-          selectedIndex: safeIndex,
-          onDestinationSelected: _onTabSelected,
-          backgroundColor: AppColors.surface,
-          indicatorColor: AppColors.primary.withValues(alpha: 0.2),
-          surfaceTintColor: Colors.transparent,
-          elevation: 0,
-          destinations: [
-            const NavigationDestination(
-              icon: Icon(Icons.dashboard_outlined, color: AppColors.textMuted),
-              selectedIcon:
-                  Icon(Icons.dashboard_rounded, color: AppColors.primaryLight),
-              label: 'Beranda',
-            ),
-            const NavigationDestination(
-              icon: Icon(Icons.domain_outlined, color: AppColors.textMuted),
-              selectedIcon:
-                  Icon(Icons.domain_rounded, color: AppColors.primaryLight),
-              label: 'Ruangan',
-            ),
-            const NavigationDestination(
-              icon: Icon(Icons.calendar_month_outlined,
-                  color: AppColors.textMuted),
-              selectedIcon: Icon(Icons.calendar_month_rounded,
-                  color: AppColors.primaryLight),
-              label: 'Kalender',
-            ),
-            NavigationDestination(
-              icon: Icon(
-                isAdmin
-                    ? Icons.fact_check_outlined
-                    : Icons.bookmark_border_rounded,
-                color: AppColors.textMuted,
-              ),
-              selectedIcon: Icon(
-                isAdmin
-                    ? Icons.fact_check_rounded
-                    : Icons.bookmark_rounded,
-                color: AppColors.primaryLight,
-              ),
-              label: isAdmin ? 'Persetujuan' : 'Reservasi',
-            ),
-            const NavigationDestination(
-              icon: Icon(Icons.person_outline_rounded,
-                  color: AppColors.textMuted),
-              selectedIcon: Icon(Icons.person_rounded,
-                  color: AppColors.primaryLight),
-              label: 'Profil',
-            ),
-          ],
+      ),
+      body: MeshCanvasBackground(
+        child: IndexedStack(
+          index: safeIndex,
+          children: screens,
         ),
+      ),
+      bottomNavigationBar: FloatingGlassNavBar(
+        currentIndex: safeIndex,
+        onTabSelected: _onTabSelected,
+        onFabPressed: _openBookingForm,
+        isAdmin: isAdmin,
+        pendingCount: _pendingCount,
       ),
     );
   }
