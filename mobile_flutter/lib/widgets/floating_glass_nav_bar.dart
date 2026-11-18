@@ -189,3 +189,4 @@ class FloatingGlassNavBar extends StatelessWidget {
     );
   }
 }
+
