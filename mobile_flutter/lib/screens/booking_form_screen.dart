@@ -811,7 +811,7 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                                 const SizedBox(width: 8),
                                 const Expanded(
                                   child: Text(
-                                    'Analitik & Rekomendasi Cerdas (AI / ML)',
+                                    'GuildSpace AI Engine (4-Model Terpadu)',
                                     style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.bold,
@@ -841,7 +841,7 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: const Text(
-                                      'Live Engine',
+                                      'Active Engine',
                                       style: TextStyle(
                                         fontSize: 9,
                                         fontWeight: FontWeight.bold,
@@ -860,10 +860,9 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                               MlEnergyOccupancyCard(
                                 linearResult: pred.linearRegression,
                               ),
-                              if (pred.logisticRegression.isHighRisk)
-                                MlNoShowBanner(
-                                  logisticResult: pred.logisticRegression,
-                                ),
+                              MlNoShowBanner(
+                                logisticResult: pred.logisticRegression,
+                              ),
                             ],
                           ],
                         ),

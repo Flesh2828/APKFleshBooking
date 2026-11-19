@@ -3,9 +3,9 @@ import './globals.css';
 import { AppProvider } from '@/context/AppContext';
 
 export const metadata: Metadata = {
-  title: 'RoomBook — Sistem Reservasi & Booking Ruangan Terpadu',
+  title: 'GuildSpace — Smart Room Booking & Guild Hub Workspace',
   description:
-    'Prototipe aplikasi booking ruangan untuk cek ketersediaan, reservasi bebas bentrok, dan persetujuan penggunaan ruangan.',
+    'Sistem reservasi ruangan pintar terintegrasi dengan Anti Ghost-Booking QR Check-In dan GuildSpace Multi-Model AI Engine.',
 };
 
 export default function RootLayout({

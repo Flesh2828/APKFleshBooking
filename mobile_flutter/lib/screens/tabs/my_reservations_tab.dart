@@ -27,7 +27,12 @@ class _MyReservationsTabState extends State<MyReservationsTab> {
   }
 
   Future<void> _loadReservations() async {
-    setState(() => _isLoading = true);
+    if (_reservations.isEmpty) {
+      _reservations = SupabaseService.cachedReservations;
+      if (_reservations.isNotEmpty && _isLoading) {
+        setState(() => _isLoading = false);
+      }
+    }
     final data = await SupabaseService.getUserReservations();
     if (mounted) {
       setState(() {
@@ -41,10 +46,14 @@ class _MyReservationsTabState extends State<MyReservationsTab> {
     switch (status.toUpperCase()) {
       case 'APPROVED':
         return AppColors.statusAvailable;
+      case 'IN_USE':
+        return AppColors.statusInUse;
       case 'PENDING':
         return AppColors.statusPending;
       case 'REJECTED':
         return AppColors.statusRejected;
+      case 'CANCELLED_GHOST':
+        return AppColors.statusGhostBooking;
       case 'CANCELLED':
       default:
         return AppColors.statusCancelled;
@@ -55,10 +64,14 @@ class _MyReservationsTabState extends State<MyReservationsTab> {
     switch (status.toUpperCase()) {
       case 'APPROVED':
         return AppColors.statusAvailableBg;
+      case 'IN_USE':
+        return AppColors.statusInUseBg;
       case 'PENDING':
         return AppColors.statusPendingBg;
       case 'REJECTED':
         return AppColors.statusRejectedBg;
+      case 'CANCELLED_GHOST':
+        return AppColors.statusGhostBookingBg;
       case 'CANCELLED':
       default:
         return AppColors.statusCancelledBg;
@@ -69,10 +82,14 @@ class _MyReservationsTabState extends State<MyReservationsTab> {
     switch (status.toUpperCase()) {
       case 'APPROVED':
         return 'Disetujui';
+      case 'IN_USE':
+        return 'Aktif Digunakan';
       case 'PENDING':
         return 'Menunggu';
       case 'REJECTED':
         return 'Ditolak';
+      case 'CANCELLED_GHOST':
+        return 'Dibatalkan (Ghost-Booking)';
       case 'CANCELLED':
         return 'Dibatalkan';
       case 'COMPLETED':
@@ -95,182 +112,389 @@ class _MyReservationsTabState extends State<MyReservationsTab> {
             DateFormatterIndo.formatDateTime(res.startTime);
         final endFormatted =
             DateFormatterIndo.formatTime(res.endTime);
-        final statusColor = _getStatusColor(res.status);
+        final statusUpper = res.status.toUpperCase();
+        final statusColor = _getStatusColor(statusUpper);
+        final isApproved = statusUpper == 'APPROVED';
+        final isInUse = statusUpper == 'IN_USE';
+        final isGhost = statusUpper == 'CANCELLED_GHOST';
 
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 44,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.borderHighlight,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 18),
-              const Text(
-                'Digital Room Pass & Slip Izin',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Tunjukkan QR ini ke staf keamanan / petugas gedung',
-                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-
-              // QR Box
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.2),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 44,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.borderHighlight,
+                      borderRadius: BorderRadius.circular(2),
                     ),
-                  ],
-                ),
-                child: QrImageView(
-                  data: 'ROOMBOOK-VERIFY:${res.id}:${res.roomId}:${res.status}',
-                  version: QrVersions.auto,
-                  size: 190.0,
-                  backgroundColor: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 18),
-
-              // Ticket Details Strip
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceVariant,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'ID Booking',
-                          style: TextStyle(
-                              fontSize: 12, color: AppColors.textMuted),
+                  ),
+                  const SizedBox(height: 18),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          gradient: AppColors.brandGradient,
+                          borderRadius: BorderRadius.circular(6),
                         ),
-                        Text(
-                          res.id,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primaryLight,
+                        child: const Text(
+                          'GS SMART PASS',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            letterSpacing: 0.5,
                           ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Tiket Presensi Digital',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Sistem Presensi Fisik Anti Ghost-Booking • GuildSpace Hub',
+                    style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // QR Box with Dynamic Payload
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.brandIndigo.withValues(alpha: 0.15),
+                          blurRadius: 16,
+                          offset: const Offset(0, 4),
                         ),
                       ],
                     ),
-                    const Divider(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Ruangan',
-                          style: TextStyle(
-                              fontSize: 12, color: AppColors.textMuted),
-                        ),
-                        Expanded(
-                          child: Text(
-                            res.roomDisplayName,
-                            textAlign: TextAlign.right,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
+                    child: QrImageView(
+                      data: 'GUILDSPACE:PASS:${res.id}:${res.roomId}:${res.status}',
+                      version: QrVersions.auto,
+                      size: 180.0,
+                      backgroundColor: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Dynamic Anti Ghost-Booking Countdown Box
+                  if (isApproved)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: AppColors.statusPendingBg,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.statusPendingBorder),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.timer_outlined, color: AppColors.statusPending, size: 20),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Countdown Check-In: 15 Menit',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.statusPendingText,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Sisa toleransi: 14m 32s sebelum pembatalan otomatis',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.statusPendingText.withValues(alpha: 0.9),
+                                  ),
+                                ),
+                              ],
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
                           ),
+                        ],
+                      ),
+                    )
+                  else if (isInUse)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: AppColors.statusInUseBg,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.statusInUseBorder),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.check_circle_rounded, color: AppColors.statusInUse, size: 20),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Presensi Fisik Terverifikasi',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.statusInUseText,
+                                  ),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  'Ruangan sedang aktif digunakan oleh pemohon.',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.statusInUseText,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else if (isGhost)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: AppColors.statusGhostBookingBg,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.statusGhostBookingBorder),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.error_outline_rounded, color: AppColors.statusGhostBooking, size: 20),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Dibatalkan (Ghost-Booking Terdeteksi)',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.statusGhostBookingText,
+                                  ),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  'Tidak ada pemindaian fisik setelah batas toleransi 15 menit habis.',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.statusGhostBookingText,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                  const SizedBox(height: 14),
+
+                  // Ticket Details Strip
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceVariant,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'ID Booking',
+                              style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                            ),
+                            Text(
+                              res.id,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primaryLight,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Divider(height: 14),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Ruangan',
+                              style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                            ),
+                            Expanded(
+                              child: Text(
+                                res.roomDisplayName,
+                                textAlign: TextAlign.right,
+                                style: const TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Jadwal Acara',
+                              style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                '$startFormatted - $endFormatted WIB',
+                                textAlign: TextAlign.right,
+                                style: const TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textSecondary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Status Validasi',
+                              style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: statusColor.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: statusColor),
+                              ),
+                              child: Text(
+                                _getStatusLabel(res.status),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: statusColor,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
+                    ),
+                  ),
+
+                  // Smart Check-in Simulation Buttons (Only when APPROVED)
+                  if (isApproved) ...[
+                    const SizedBox(height: 14),
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        final messenger = ScaffoldMessenger.of(context);
+                        await SupabaseService.checkInReservation(res.id);
+                        if (ctx.mounted) Navigator.pop(ctx);
+                        _loadReservations();
+                        if (!mounted) return;
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Check-In Sukses! Ruangan ${res.roomDisplayName} kini Aktif Digunakan.',
+                            ),
+                            backgroundColor: AppColors.statusInUse,
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.qr_code_scanner_rounded, size: 18),
+                      label: const Text('Simulasikan Scan Presensi Fisik (Check-In)'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.statusAvailable,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(double.infinity, 44),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Jadwal Acara',
-                          style: TextStyle(
-                              fontSize: 12, color: AppColors.textMuted),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            '$startFormatted - $endFormatted WIB',
-                            textAlign: TextAlign.right,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textSecondary,
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        final messenger = ScaffoldMessenger.of(context);
+                        await SupabaseService.expireGhostBooking(res.id);
+                        if (ctx.mounted) Navigator.pop(ctx);
+                        _loadReservations();
+                        if (!mounted) return;
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Waktu toleransi habis! Reservasi ${res.id} dibatalkan (Ghost-Booking Terdeteksi).',
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                            backgroundColor: AppColors.statusGhostBooking,
                           ),
+                        );
+                      },
+                      icon: const Icon(Icons.timer_off_outlined, size: 16),
+                      label: const Text('Simulasi Waktu Habis 15 Mnt (Ghost-Booking)'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.statusGhostBooking,
+                        side: const BorderSide(color: AppColors.statusGhostBookingBorder),
+                        minimumSize: const Size(double.infinity, 40),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Status Validasi',
-                          style: TextStyle(
-                              fontSize: 12, color: AppColors.textMuted),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: statusColor.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: statusColor),
-                          ),
-                          child: Text(
-                            _getStatusLabel(res.status),
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: statusColor,
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ],
-                ),
-              ),
 
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(ctx),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.surfaceElevated,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(double.infinity, 44),
-                ),
-                child: const Text('Tutup Pass'),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.surfaceElevated,
+                      foregroundColor: AppColors.textPrimary,
+                      minimumSize: const Size(double.infinity, 42),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: const BorderSide(color: AppColors.borderSubtle),
+                      ),
+                    ),
+                    child: const Text('Tutup Pass'),
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -342,6 +566,10 @@ class _MyReservationsTabState extends State<MyReservationsTab> {
             if (!isOwner) return false;
 
             if (_selectedFilter == 'SEMUA') return true;
+            if (_selectedFilter == 'CANCELLED') {
+              return r.status.toUpperCase() == 'CANCELLED' ||
+                  r.status.toUpperCase() == 'CANCELLED_GHOST';
+            }
             return r.status.toUpperCase() == _selectedFilter;
           }).toList();
 
@@ -358,6 +586,8 @@ class _MyReservationsTabState extends State<MyReservationsTab> {
                     _buildFilterChip('PENDING', 'Menunggu'),
                     const SizedBox(width: 8),
                     _buildFilterChip('APPROVED', 'Disetujui'),
+                    const SizedBox(width: 8),
+                    _buildFilterChip('IN_USE', 'Aktif Digunakan'),
                     const SizedBox(width: 8),
                     _buildFilterChip('REJECTED', 'Ditolak'),
                     const SizedBox(width: 8),
@@ -418,7 +648,7 @@ class _MyReservationsTabState extends State<MyReservationsTab> {
                         : RefreshIndicator(
                             onRefresh: _loadReservations,
                             child: ListView.builder(
-                              padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                              padding: const EdgeInsets.fromLTRB(16, 4, 16, 110),
                               itemCount: filtered.length,
                               itemBuilder: (context, index) {
                                 return _buildReservationCard(filtered[index]);

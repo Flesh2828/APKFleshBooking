@@ -10,8 +10,8 @@ class DarkShimmer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: const Color(0xFF1E293B),
-      highlightColor: const Color(0xFF334155),
+      baseColor: const Color(0xFFE2E8F0),
+      highlightColor: const Color(0xFFF8FAFC),
       child: child,
     );
   }
@@ -49,33 +49,39 @@ class ShimmerMetricCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return DarkShimmer(
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 12),
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: AppColors.borderSubtle),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const ShimmerBox(width: 80, height: 12),
+                const ShimmerBox(width: 44, height: 10),
                 Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceVariant,
-                    borderRadius: BorderRadius.circular(10),
+                  width: 6,
+                  height: 6,
+                  decoration: const BoxDecoration(
+                    color: AppColors.border,
+                    shape: BoxShape.circle,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            const ShimmerBox(width: 48, height: 24),
-            const SizedBox(height: 6),
-            const ShimmerBox(width: 90, height: 10),
+            const SizedBox(height: 10),
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                ShimmerBox(width: 26, height: 22, borderRadius: 6),
+                ShimmerBox(width: 34, height: 14, borderRadius: 4),
+              ],
+            ),
           ],
         ),
       ),

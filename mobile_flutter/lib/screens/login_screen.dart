@@ -12,7 +12,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController(text: 'mahasiswa@roombook.ac.id');
+  final _emailController = TextEditingController(text: 'xiaoxiu@guildspace.ac.id');
   final _passwordController = TextEditingController(text: 'mhs123');
   bool _showPassword = false;
   bool _isLoading = false;
@@ -90,20 +90,26 @@ class _LoginScreenState extends State<LoginScreen> {
                             width: 52,
                             height: 52,
                             decoration: BoxDecoration(
-                              gradient: AppColors.tealGradient,
+                              gradient: AppColors.brandGradient,
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppColors.brandTeal.withValues(alpha: 0.35),
+                                  color: AppColors.brandIndigo.withValues(alpha: 0.35),
                                   blurRadius: 12,
                                   offset: const Offset(0, 4),
                                 ),
                               ],
                             ),
-                            child: const Icon(
-                              Icons.meeting_room_rounded,
-                              size: 28,
-                              color: Colors.white,
+                            child: const Center(
+                              child: Text(
+                                'GS',
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                  letterSpacing: -1,
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -114,7 +120,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             width: 14,
                             height: 14,
                             decoration: BoxDecoration(
-                              color: AppColors.brandTeal,
+                              color: AppColors.brandEmerald,
                               shape: BoxShape.circle,
                               border: Border.all(color: Colors.white, width: 2.5),
                             ),
@@ -127,7 +133,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   // Brand Headline & Subtitle
                   Text(
-                    'RoomBook',
+                    'GuildSpace',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 26,
@@ -138,7 +144,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Sistem Reservasi Fasilitas Kampus Terpadu & Terintegrasi',
+                    'Smart Space Reservation & Guild Hub Workspace',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
@@ -467,7 +473,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               child: _buildRoleChip(
                                 label: 'ADMIN',
                                 sublabel: 'Sarpras',
-                                email: 'admin@roombook.ac.id',
+                                email: 'admin@guildspace.ac.id',
                                 pass: 'admin123',
                                 icon: Icons.shield_outlined,
                                 accentColor: const Color(0xFF6366F1),
@@ -479,22 +485,22 @@ class _LoginScreenState extends State<LoginScreen> {
                               child: _buildRoleChip(
                                 label: 'DOSEN',
                                 sublabel: 'Fakultas',
-                                email: 'dosen@roombook.ac.id',
+                                email: 'dosen@guildspace.ac.id',
                                 pass: 'dosen123',
                                 icon: Icons.school_outlined,
                                 accentColor: const Color(0xFF0EA5E9),
                               ),
                             ),
                             const SizedBox(width: 6),
-                            // 3. MAHASISWA
+                            // 3. XIAO XIU (DPM / Guild Hub)
                             Expanded(
                               child: _buildRoleChip(
-                                label: 'MHSW',
-                                sublabel: 'BEM/UKM',
-                                email: 'mahasiswa@roombook.ac.id',
+                                label: 'XIAO XIU',
+                                sublabel: 'DPM Guild',
+                                email: 'xiaoxiu@guildspace.ac.id',
                                 pass: 'mhs123',
                                 icon: Icons.groups_outlined,
-                                accentColor: AppColors.brandTeal,
+                                accentColor: AppColors.brandEmerald,
                               ),
                             ),
                             const SizedBox(width: 6),
@@ -503,7 +509,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               child: _buildRoleChip(
                                 label: 'STAF',
                                 sublabel: 'BAAK',
-                                email: 'staf@roombook.ac.id',
+                                email: 'staf@guildspace.ac.id',
                                 pass: 'staf123',
                                 icon: Icons.badge_outlined,
                                 accentColor: const Color(0xFF64748B),

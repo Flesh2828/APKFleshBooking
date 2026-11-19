@@ -5,14 +5,14 @@ void main() {
   group('ReservationModel Unit Tests', () {
     test('fromJson parses reservation with ML fields properly', () {
       final json = {
-        'id': 'res-101',
+        'id': 'GS-101',
         'user_id': 'user-01',
         'room_id': 'room-01',
-        'user_name': 'Budi Santoso',
-        'organization': 'BEM Fakultas Teknik',
+        'user_name': 'Xiao Xiu',
+        'organization': 'Divisi Dewan Perwakilan Mahasiswa / Guild Hub',
         'start_time': '2026-10-10T09:00:00Z',
         'end_time': '2026-10-10T11:00:00Z',
-        'purpose': 'Kuliah Tamu Machine Learning & Deep Learning',
+        'purpose': 'Sidang Pleno Himpunan & Koordinasi Ormawa',
         'participant_count': 35,
         'status': 'APPROVED',
         'created_at': '2026-10-01T10:00:00Z',
@@ -27,8 +27,8 @@ void main() {
 
       final res = ReservationModel.fromJson(json);
 
-      expect(res.id, equals('res-101'));
-      expect(res.userName, equals('Budi Santoso'));
+      expect(res.id, equals('GS-101'));
+      expect(res.userName, equals('Xiao Xiu'));
       expect(res.participantCount, equals(35));
       expect(res.status, equals('APPROVED'));
       expect(res.autoCategory, equals('ACADEMIC'));

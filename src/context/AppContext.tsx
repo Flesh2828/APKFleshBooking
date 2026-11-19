@@ -35,6 +35,8 @@ interface AppContextType {
   approveReservation: (id: string, reason?: string) => { success: boolean; error?: string };
   rejectReservation: (id: string, reason: string) => { success: boolean; error?: string };
   cancelReservation: (id: string, reason?: string) => { success: boolean; error?: string };
+  checkInReservation: (id: string) => { success: boolean; error?: string };
+  expireGhostBooking: (id: string) => { success: boolean; error?: string };
   saveRoom: (room: Room) => void;
   toggleRoomStatus: (roomId: string, status: Room['status']) => void;
   markNotificationAsRead: (id: string) => void;
@@ -117,7 +119,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     // Subscribe to realtime changes from Mobile Flutter App
     const channel = supabase
-      .channel('roombook_realtime_reservations')
+      .channel('guildspace_realtime_reservations')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'reservations' },
@@ -293,6 +295,38 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     return res;
   };
 
+  const checkInReservation = (id: string) => {
+    const res = StorageService.checkInReservation(id, currentUser);
+    if (res.success) {
+      refreshData();
+      addToast('Presensi Fisik Berhasil! Ruangan saat ini Aktif Digunakan.', 'success');
+      supabase
+        .from('reservations')
+        .update({ status: 'IN_USE' })
+        .eq('id', id)
+        .then(() => fetchFromSupabase());
+    } else if (res.error) {
+      addToast(res.error, 'error');
+    }
+    return res;
+  };
+
+  const expireGhostBooking = (id: string) => {
+    const res = StorageService.expireGhostBooking(id, currentUser);
+    if (res.success) {
+      refreshData();
+      addToast('Batas 15 menit habis: Reservasi dibatalkan otomatis (Ghost-Booking Terdeteksi).', 'warning');
+      supabase
+        .from('reservations')
+        .update({ status: 'CANCELLED_GHOST' })
+        .eq('id', id)
+        .then(() => fetchFromSupabase());
+    } else if (res.error) {
+      addToast(res.error, 'error');
+    }
+    return res;
+  };
+
   const saveRoom = (room: Room) => {
     StorageService.saveRoom(room);
     refreshData();
@@ -349,6 +383,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         approveReservation,
         rejectReservation,
         cancelReservation,
+        checkInReservation,
+        expireGhostBooking,
         saveRoom,
         toggleRoomStatus,
         markNotificationAsRead,

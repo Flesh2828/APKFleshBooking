@@ -33,17 +33,28 @@ class _AvailabilityCalendarScreenState
   }
 
   Future<void> _loadData() async {
-    setState(() => _isLoading = true);
-    final rooms = await SupabaseService.getRooms();
-    final resvs = await SupabaseService.getAllReservations();
+    if (_rooms.isEmpty) {
+      _rooms = SupabaseService.cachedRooms;
+      if (_selectedRoomId == null && _rooms.isNotEmpty) {
+        _selectedRoomId = _rooms.first.id;
+      }
+      _reservations = SupabaseService.cachedReservations;
+      if (_rooms.isNotEmpty && _isLoading) {
+        setState(() => _isLoading = false);
+      }
+    }
+    final results = await Future.wait([
+      SupabaseService.getRooms(),
+      SupabaseService.getAllReservations(),
+    ]);
 
     if (mounted) {
       setState(() {
-        _rooms = rooms;
-        if (_selectedRoomId == null && rooms.isNotEmpty) {
-          _selectedRoomId = rooms.first.id;
+        _rooms = results[0] as List<RoomModel>;
+        if (_selectedRoomId == null && _rooms.isNotEmpty) {
+          _selectedRoomId = _rooms.first.id;
         }
-        _reservations = resvs;
+        _reservations = results[1] as List<ReservationModel>;
         _isLoading = false;
       });
     }
@@ -98,7 +109,7 @@ class _AvailabilityCalendarScreenState
       ReservationModel? bookedRes;
       for (final r in _reservations) {
         if (r.roomId == _selectedRoomId &&
-            r.status == 'APPROVED' &&
+            (r.status == 'APPROVED' || r.status == 'IN_USE') &&
             start.isBefore(r.endTime) &&
             end.isAfter(r.startTime)) {
           bookedRes = r;
@@ -167,7 +178,7 @@ class _AvailabilityCalendarScreenState
           : RefreshIndicator(
               onRefresh: _loadData,
               child: ListView(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
                 children: [
                   // Room Selector Card
                   Container(

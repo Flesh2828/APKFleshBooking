@@ -43,6 +43,17 @@ class StatusBadge extends StatelessWidget {
         displayLabel = customLabel ?? (normalized == 'ACTIVE' ? 'SIAP DIPESAN' : 'AVAILABLE');
         break;
 
+      case 'IN_USE':
+      case 'AKTIF DIGUNAKAN':
+      case 'ACTIVE_USE':
+        solidColor = AppColors.statusInUse;
+        bgColor = AppColors.statusInUseBg;
+        borderColor = AppColors.statusInUseBorder;
+        textColor = AppColors.statusInUseText;
+        icon = Icons.sensors_rounded;
+        displayLabel = customLabel ?? 'Aktif Digunakan';
+        break;
+
       case 'BOOKED':
         solidColor = AppColors.statusBooked;
         bgColor = AppColors.statusBookedBg;
@@ -86,6 +97,16 @@ class StatusBadge extends StatelessWidget {
         textColor = AppColors.statusRejectedText;
         icon = Icons.cancel_rounded;
         displayLabel = customLabel ?? 'DITOLAK';
+        break;
+
+      case 'CANCELLED_GHOST':
+      case 'GHOST_BOOKING':
+        solidColor = AppColors.statusGhostBooking;
+        bgColor = AppColors.statusGhostBookingBg;
+        borderColor = AppColors.statusGhostBookingBorder;
+        textColor = AppColors.statusGhostBookingText;
+        icon = Icons.timer_off_rounded;
+        displayLabel = customLabel ?? 'Dibatalkan (Ghost-Booking Terdeteksi)';
         break;
 
       case 'CANCELLED':

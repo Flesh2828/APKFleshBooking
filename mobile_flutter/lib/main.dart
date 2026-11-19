@@ -19,16 +19,16 @@ Future<void> main() async {
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtdGRja3hxc2dqbXV3dmlrbGViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA2NTk3OTUsImV4cCI6MjEwNjIzNTc5NX0.aZf8-x9znllJy3ONrbECsc1T30NeigcrsT64k8hem5U',
   );
 
-  runApp(const RoomBookApp());
+  runApp(const GuildSpaceApp());
 }
 
-class RoomBookApp extends StatelessWidget {
-  const RoomBookApp({super.key});
+class GuildSpaceApp extends StatelessWidget {
+  const GuildSpaceApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'RoomBook Mobile',
+      title: 'GuildSpace Mobile',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       initialRoute: '/login',
@@ -40,3 +40,6 @@ class RoomBookApp extends StatelessWidget {
     );
   }
 }
+
+/// Compatibility alias
+typedef RoomBookApp = GuildSpaceApp;

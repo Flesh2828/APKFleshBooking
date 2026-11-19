@@ -26,8 +26,8 @@ export const LoginView = () => {
   const [activeTab, setActiveTab] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
 
   // Login form state
-  const [email, setEmail] = useState('admin@roombook.ac.id');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('xiaoxiu@guildspace.ac.id');
+  const [password, setPassword] = useState('mhs123');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -87,30 +87,30 @@ export const LoginView = () => {
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 sm:p-6 lg:p-8 font-sans">
       <div className="max-w-5xl w-full bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[640px]">
         {/* Left Side: Brand & Feature Showcase (5 cols on lg) */}
-        <div className="lg:col-span-5 bg-gradient-to-br from-indigo-700 via-indigo-600 to-sky-700 p-8 sm:p-10 text-white flex flex-col justify-between relative overflow-hidden">
+        <div className="lg:col-span-5 bg-gradient-to-br from-indigo-800 via-indigo-600 to-emerald-700 p-8 sm:p-10 text-white flex flex-col justify-between relative overflow-hidden">
           <div className="space-y-6 relative z-10">
             {/* Logo */}
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-white text-indigo-700 flex items-center justify-center shadow-lg font-black text-xl">
-                <Building2 className="w-6 h-6" />
+              <div className="w-12 h-12 rounded-2xl bg-white text-indigo-700 flex items-center justify-center shadow-lg font-black text-xl tracking-tighter">
+                GS
               </div>
               <div>
-                <span className="text-xl font-black tracking-tight block">RoomBook</span>
-                <span className="text-xs text-indigo-200">Sistem Booking Ruangan Terpadu</span>
+                <span className="text-xl font-black tracking-tight block">GuildSpace</span>
+                <span className="text-xs text-emerald-200">Smart Space & Guild Hub Workspace</span>
               </div>
             </div>
 
             {/* Headline */}
             <div className="space-y-3 pt-4">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-xs font-semibold">
-                <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
-                Prototipe Resmi v1.0 (MVP)
+                <Sparkles className="w-3.5 h-3.5 text-emerald-300" />
+                GuildSpace AI & Smart QR Check-In
               </div>
               <h2 className="text-2xl sm:text-3xl font-black leading-tight tracking-tight">
-                Pengecekan Ketersediaan, Reservasi, dan Persetujuan Mudah.
+                Reservasi Ruangan Bebas Ghost-Booking & Analitik Cerdas.
               </h2>
               <p className="text-xs sm:text-sm text-indigo-100 leading-relaxed">
-                Platform terpusat civitas akademika untuk meminjam fasilitas ruangan kampus tanpa risiko bentrok jadwal.
+                Platform terpusat civitas akademika & organisasi mahasiswa dengan Dynamic QR Code Check-In dan multi-model Machine Learning terpadu.
               </p>
             </div>
 
@@ -118,21 +118,21 @@ export const LoginView = () => {
             <div className="space-y-3 pt-2 text-xs">
               <div className="flex items-center gap-3 bg-white/10 p-3 rounded-2xl backdrop-blur-sm border border-white/10">
                 <CheckCircle2 className="w-5 h-5 text-emerald-300 flex-shrink-0" />
-                <span>Validasi Otomatis Pencegah Bentrok Jadwal</span>
+                <span>Anti Ghost-Booking: Validasi Presensi Fisik 15 Menit</span>
               </div>
               <div className="flex items-center gap-3 bg-white/10 p-3 rounded-2xl backdrop-blur-sm border border-white/10">
-                <Cloud className="w-5 h-5 text-sky-300 flex-shrink-0" />
-                <span>Mendukung Single Sign-On (SSO) Google Cloud (GCP)</span>
+                <Sparkles className="w-5 h-5 text-indigo-200 flex-shrink-0" />
+                <span>GuildSpace AI Engine: Naive Bayes, SVM, Logistic & Linear Regression</span>
               </div>
               <div className="flex items-center gap-3 bg-white/10 p-3 rounded-2xl backdrop-blur-sm border border-white/10">
                 <ShieldCheck className="w-5 h-5 text-amber-300 flex-shrink-0" />
-                <span>Otorisasi Berbasis Role (Admin, Dosen, Mahasiswa, Staf)</span>
+                <span>Otorisasi Berbasis Role (Admin, Dosen, Mahasiswa / Guild Hub, Staf)</span>
               </div>
             </div>
           </div>
 
           <div className="pt-8 text-xs text-indigo-200 relative z-10">
-            &copy; 2026 Kampus Terpadu • RoomBook Management
+            &copy; 2026 Kampus Terpadu • GuildSpace Management System
           </div>
 
           {/* Ambient circles */}
@@ -239,7 +239,7 @@ export const LoginView = () => {
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="nama@roombook.ac.id"
+                      placeholder="nama@guildspace.ac.id"
                       className="w-full pl-10 pr-3 py-2.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                   </div>
@@ -287,7 +287,7 @@ export const LoginView = () => {
                     <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
                   ) : (
                     <>
-                      <span>Masuk ke RoomBook</span>
+                      <span>Masuk ke GuildSpace</span>
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}
@@ -410,37 +410,37 @@ export const LoginView = () => {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[10px]">
               <button
                 type="button"
-                onClick={() => handleQuickFill('admin@roombook.ac.id', 'admin123')}
+                onClick={() => handleQuickFill('admin@guildspace.ac.id', 'admin123')}
                 className="p-2 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-left hover:border-rose-400 transition-colors"
               >
-                <div className="font-bold text-rose-600">👑 Admin</div>
+                <div className="font-bold text-rose-600">👑 Admin (Sarpras)</div>
                 <div className="text-slate-400 truncate">admin123</div>
               </button>
 
               <button
                 type="button"
-                onClick={() => handleQuickFill('dosen@roombook.ac.id', 'dosen123')}
+                onClick={() => handleQuickFill('dosen@guildspace.ac.id', 'dosen123')}
                 className="p-2 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-left hover:border-indigo-400 transition-colors"
               >
-                <div className="font-bold text-indigo-600">🎓 Dosen</div>
+                <div className="font-bold text-indigo-600">🎓 Dosen (Informatika)</div>
                 <div className="text-slate-400 truncate">dosen123</div>
               </button>
 
               <button
                 type="button"
-                onClick={() => handleQuickFill('mahasiswa@roombook.ac.id', 'mhs123')}
+                onClick={() => handleQuickFill('xiaoxiu@guildspace.ac.id', 'mhs123')}
                 className="p-2 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-left hover:border-emerald-400 transition-colors"
               >
-                <div className="font-bold text-emerald-600">🤝 Mahasiswa</div>
+                <div className="font-bold text-emerald-600">🤝 Xiao Xiu (DPM)</div>
                 <div className="text-slate-400 truncate">mhs123</div>
               </button>
 
               <button
                 type="button"
-                onClick={() => handleQuickFill('staf@roombook.ac.id', 'staf123')}
+                onClick={() => handleQuickFill('staf@guildspace.ac.id', 'staf123')}
                 className="p-2 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-left hover:border-amber-400 transition-colors"
               >
-                <div className="font-bold text-amber-600">💼 Staf</div>
+                <div className="font-bold text-amber-600">💼 Staf (BAAK)</div>
                 <div className="text-slate-400 truncate">staf123</div>
               </button>
             </div>

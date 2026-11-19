@@ -163,7 +163,7 @@ export const DocsView = () => {
         <p className="text-xs sm:text-sm text-slate-500 mt-1">
           Seluruh 15 file dokumentasi spesifikasi teknis dan produk tersimpan rapi di direktori{' '}
           <code className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-indigo-600">
-            roombook/docs/
+            guildspace/docs/
           </code>
         </p>
       </div>
@@ -265,14 +265,14 @@ export const DocsView = () => {
                 Kesesuaian dengan Dokumen Panduan & PRD:
               </h4>
               <p className="leading-relaxed text-[11px]">
-                Dokumen ini disusun mengikuti kaidah teknis yang tertuang dalam dokumen resmi <strong>RoomBook Product Requirements Document (PRD v1.0)</strong> dan panduan <strong>Technology & Programming Languages</strong>.
+                Dokumen ini disusun mengikuti kaidah teknis yang tertuang dalam dokumen resmi <strong>GuildSpace Product Requirements Document (PRD v1.0)</strong> dan panduan <strong>Technology & Programming Languages</strong>.
               </p>
             </div>
           </div>
 
           <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-400">
             <span>Dibuat dalam format GitHub Markdown standar</span>
-            <span className="font-semibold text-slate-600 dark:text-slate-300">RoomBook Docs v1.0</span>
+            <span className="font-semibold text-slate-600 dark:text-slate-300">GuildSpace Docs v1.0</span>
           </div>
         </div>
       </div>

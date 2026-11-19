@@ -199,7 +199,7 @@ export const Sidebar = ({ isOpenMobile, onCloseMobile }: SidebarProps) => {
             <span>Reset Data Sampel</span>
           </button>
           <div className="mt-2 text-center text-[10px] text-slate-400">
-            RoomBook Prototype &copy; 2026
+            GuildSpace Prototype &copy; 2026
           </div>
         </div>
       </aside>

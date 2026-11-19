@@ -7,7 +7,7 @@ import 'glass_surface.dart';
 class FloatingGlassNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTabSelected;
-  final VoidCallback onFabPressed;
+  final VoidCallback? onFabPressed;
   final bool isAdmin;
   final int pendingCount;
 
@@ -15,7 +15,7 @@ class FloatingGlassNavBar extends StatelessWidget {
     super.key,
     required this.currentIndex,
     required this.onTabSelected,
-    required this.onFabPressed,
+    this.onFabPressed,
     required this.isAdmin,
     this.pendingCount = 0,
   });
@@ -24,98 +24,69 @@ class FloatingGlassNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
-      child: Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.center,
-        children: [
-          // Glass Dock Surface Tier 4
-          GlassSurface(
-            tier: GlassTier.dock,
-            borderRadius: BorderRadius.circular(28),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                // Tab 0: Beranda
-                _buildNavItem(
-                  index: 0,
-                  icon: Icons.dashboard_outlined,
-                  activeIcon: Icons.dashboard_rounded,
-                  label: 'Beranda',
-                ),
-
-                // Tab 1: Ruangan
-                _buildNavItem(
-                  index: 1,
-                  icon: Icons.domain_outlined,
-                  activeIcon: Icons.domain_rounded,
-                  label: 'Ruangan',
-                ),
-
-                // Spacer for Center Floating FAB
-                const SizedBox(width: 52),
-
-                // Tab 2: Kalender
-                _buildNavItem(
-                  index: 2,
-                  icon: Icons.calendar_month_outlined,
-                  activeIcon: Icons.calendar_month_rounded,
-                  label: 'Kalender',
-                ),
-
-                // Tab 3: Dinamis (Admin: Persetujuan, Non-Admin: Reservasi)
-                _buildNavItem(
-                  index: 3,
-                  icon: isAdmin
-                      ? Icons.fact_check_outlined
-                      : Icons.bookmark_border_rounded,
-                  activeIcon: isAdmin
-                      ? Icons.fact_check_rounded
-                      : Icons.bookmark_rounded,
-                  label: isAdmin ? 'Persetujuan' : 'Reservasi',
-                  badgeCount: pendingCount,
-                ),
-
-                // Tab 4: Profil
-                _buildNavItem(
-                  index: 4,
-                  icon: Icons.person_outline_rounded,
-                  activeIcon: Icons.person_rounded,
-                  label: 'Profil',
-                ),
-              ],
-            ),
-          ),
-
-          // Center Prominent Floating Action Button (FAB)
-          Positioned(
-            top: -20,
-            child: GestureDetector(
-              onTap: onFabPressed,
-              child: Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: AppColors.tealGradient,
-                  border: Border.all(color: Colors.white, width: 2.5),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.brandTeal.withValues(alpha: 0.40),
-                      blurRadius: 16,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.add_rounded,
-                  color: Colors.white,
-                  size: 28,
-                ),
+      child: GlassSurface(
+        tier: GlassTier.dock,
+        borderRadius: BorderRadius.circular(28),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            // Tab 0: Beranda
+            Expanded(
+              child: _buildNavItem(
+                index: 0,
+                icon: Icons.dashboard_outlined,
+                activeIcon: Icons.dashboard_rounded,
+                label: 'Beranda',
               ),
             ),
-          ),
-        ],
+
+            // Tab 1: Ruangan
+            Expanded(
+              child: _buildNavItem(
+                index: 1,
+                icon: Icons.meeting_room_outlined,
+                activeIcon: Icons.meeting_room_rounded,
+                label: 'Ruangan',
+              ),
+            ),
+
+            // Tab 2: Kalender
+            Expanded(
+              child: _buildNavItem(
+                index: 2,
+                icon: Icons.calendar_month_outlined,
+                activeIcon: Icons.calendar_month_rounded,
+                label: 'Kalender',
+              ),
+            ),
+
+            // Tab 3: Dinamis (Admin: Persetujuan, Non-Admin: Reservasi)
+            Expanded(
+              child: _buildNavItem(
+                index: 3,
+                icon: isAdmin
+                    ? Icons.fact_check_outlined
+                    : Icons.bookmark_border_rounded,
+                activeIcon: isAdmin
+                    ? Icons.fact_check_rounded
+                    : Icons.bookmark_rounded,
+                label: isAdmin ? 'Persetujuan' : 'Reservasi',
+                badgeCount: pendingCount,
+              ),
+            ),
+
+            // Tab 4: Profil
+            Expanded(
+              child: _buildNavItem(
+                index: 4,
+                icon: Icons.person_outline_rounded,
+                activeIcon: Icons.person_rounded,
+                label: 'Profil',
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -132,8 +103,15 @@ class FloatingGlassNavBar extends StatelessWidget {
     return InkWell(
       onTap: () => onTabSelected(index),
       borderRadius: BorderRadius.circular(16),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.brandIndigo.withValues(alpha: 0.10)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -143,7 +121,7 @@ class FloatingGlassNavBar extends StatelessWidget {
                 Icon(
                   isSelected ? activeIcon : icon,
                   size: 22,
-                  color: isSelected ? AppColors.brandTealDark : AppColors.textMuted,
+                  color: isSelected ? AppColors.brandIndigo : AppColors.textMuted,
                 ),
                 if (badgeCount > 0)
                   Positioned(
@@ -177,11 +155,13 @@ class FloatingGlassNavBar extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                fontSize: 9.5,
+                fontSize: 10,
                 fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                color: isSelected ? AppColors.brandTealDark : AppColors.textMuted,
+                color: isSelected ? AppColors.brandIndigo : AppColors.textMuted,
                 letterSpacing: -0.1,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

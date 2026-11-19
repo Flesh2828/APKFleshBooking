@@ -178,7 +178,7 @@ class MeshCanvasBackground extends StatelessWidget {
           ),
         ),
 
-        // 2. Ambient Atmosphere Orb 1 (Top Left Teal)
+        // 2. Ambient Atmosphere Orb 1 (Top Left Indigo)
         Positioned(
           top: -70,
           left: -50,
@@ -189,7 +189,7 @@ class MeshCanvasBackground extends StatelessWidget {
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  AppColors.brandTealLight.withValues(alpha: 0.18),
+                  AppColors.ambientIndigo,
                   Colors.transparent,
                 ],
                 stops: const [0.0, 0.70],
@@ -198,7 +198,7 @@ class MeshCanvasBackground extends StatelessWidget {
           ),
         ),
 
-        // 3. Ambient Atmosphere Orb 2 (Mid-Right Sky)
+        // 3. Ambient Atmosphere Orb 2 (Mid-Right Emerald)
         Positioned(
           top: 300,
           right: -60,
@@ -209,7 +209,7 @@ class MeshCanvasBackground extends StatelessWidget {
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  const Color(0xFF38BDF8).withValues(alpha: 0.16),
+                  AppColors.ambientEmerald,
                   Colors.transparent,
                 ],
                 stops: const [0.0, 0.70],
@@ -218,7 +218,7 @@ class MeshCanvasBackground extends StatelessWidget {
           ),
         ),
 
-        // 4. Ambient Atmosphere Orb 3 (Bottom Left Amber)
+        // 4. Ambient Atmosphere Orb 3 (Bottom Left Soft Amber/Mint)
         Positioned(
           bottom: -40,
           left: 20,
@@ -229,7 +229,7 @@ class MeshCanvasBackground extends StatelessWidget {
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  const Color(0xFFF59E0B).withValues(alpha: 0.12),
+                  AppColors.ambientSky,
                   Colors.transparent,
                 ],
                 stops: const [0.0, 0.70],

@@ -39,10 +39,14 @@ class ReservationDetailModal extends StatelessWidget {
     switch (status.toUpperCase()) {
       case 'APPROVED':
         return AppColors.statusAvailable;
+      case 'IN_USE':
+        return AppColors.statusInUse;
       case 'PENDING':
         return AppColors.statusPending;
       case 'REJECTED':
         return AppColors.statusRejected;
+      case 'CANCELLED_GHOST':
+        return AppColors.statusGhostBooking;
       case 'CANCELLED':
       default:
         return AppColors.statusCancelled;
@@ -53,10 +57,14 @@ class ReservationDetailModal extends StatelessWidget {
     switch (status.toUpperCase()) {
       case 'APPROVED':
         return 'Disetujui';
+      case 'IN_USE':
+        return 'Aktif Digunakan';
       case 'PENDING':
         return 'Menunggu Review';
       case 'REJECTED':
         return 'Ditolak';
+      case 'CANCELLED_GHOST':
+        return 'Dibatalkan (Ghost-Booking)';
       case 'CANCELLED':
         return 'Dibatalkan';
       case 'COMPLETED':

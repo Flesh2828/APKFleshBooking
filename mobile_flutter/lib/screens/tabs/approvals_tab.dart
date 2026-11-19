@@ -41,7 +41,14 @@ class _ApprovalsTabState extends State<ApprovalsTab> {
   }
 
   Future<void> _fetchPendingReservations() async {
-    setState(() => _isLoading = true);
+    if (_pendingReservations.isEmpty) {
+      _pendingReservations = SupabaseService.cachedReservations
+          .where((r) => r.status.toUpperCase() == 'PENDING')
+          .toList();
+      if (_pendingReservations.isNotEmpty && _isLoading) {
+        setState(() => _isLoading = false);
+      }
+    }
     final all = await SupabaseService.getAllReservations();
     if (mounted) {
       setState(() {
@@ -247,7 +254,7 @@ class _ApprovalsTabState extends State<ApprovalsTab> {
               : RefreshIndicator(
                   onRefresh: _fetchPendingReservations,
                   child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
                     itemCount: _pendingReservations.length,
                     itemBuilder: (context, index) {
                       final resv = _pendingReservations[index];

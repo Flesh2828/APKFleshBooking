@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Room } from '@/types';
 import { StorageService } from '@/lib/storage';
+import { evaluateGuildSpaceMl } from '@/lib/mlEngine';
 import {
   Calendar,
   Clock,
@@ -15,6 +16,10 @@ import {
   Send,
   HelpCircle,
   Sparkles,
+  Cpu,
+  Zap,
+  ShieldCheck,
+  TrendingUp,
 } from 'lucide-react';
 
 export const ReservationFormView = () => {
@@ -128,6 +133,30 @@ export const ReservationFormView = () => {
       message: 'Jadwal dan kapasitas valid! Slot waktu tersedia dan siap diajukan.',
     };
   }, [selectedRoom, participantCount, date, startTime, endTime]);
+
+  const durationHours = useMemo(() => {
+    try {
+      const [sH, sM] = startTime.split(':').map(Number);
+      const [eH, eM] = endTime.split(':').map(Number);
+      const diff = (eH * 60 + eM) - (sH * 60 + sM);
+      return diff > 0 ? diff / 60 : 1;
+    } catch {
+      return 2;
+    }
+  }, [startTime, endTime]);
+
+  const mlPrediction = useMemo(() => {
+    return evaluateGuildSpaceMl({
+      purpose,
+      participantCount,
+      capacity: selectedRoom?.capacity || 30,
+      durationHours,
+      userRole: currentUser.role,
+      pastNoShowCount: 0,
+      roomFacilities: selectedRoom?.facilities || [],
+      hasScheduleConflict: validationStatus.type === 'CONFLICT',
+    });
+  }, [purpose, participantCount, selectedRoom, durationHours, currentUser.role, validationStatus.type]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -389,6 +418,151 @@ export const ReservationFormView = () => {
                 placeholder="Keterangan lain yang perlu diketahui oleh petugas kebersihan atau pengelola ruangan"
                 className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
+            </div>
+          </div>
+        </div>
+
+        {/* Section 4: GUILDSPACE AI ENGINE (4-MODEL INTEGRATED) */}
+        <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-indigo-950 via-slate-900 to-emerald-950 text-white border border-indigo-500/30 shadow-xl relative overflow-hidden space-y-4">
+            {/* Engine Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-emerald-400 flex items-center justify-center text-white shadow-md">
+                  <Cpu className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-extrabold tracking-tight text-white flex items-center gap-1.5">
+                      GuildSpace AI Engine
+                    </h3>
+                    <span className="px-2 py-0.5 text-[9px] font-mono font-bold rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      4-MODEL ACTIVE
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-300">
+                    Inferensi prediktif real-time berbasis Naive Bayes, SVM, Logistic & Linear Regression
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-[10px] font-mono text-emerald-400 self-start sm:self-auto bg-white/5 px-2.5 py-1 rounded-lg border border-white/10">
+                Latensi: &lt; 25ms (Local Edge)
+              </div>
+            </div>
+
+            {/* 4 Models Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+              {/* Model 1: Naive Bayes */}
+              <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-indigo-300 flex items-center gap-1.5 text-[11px]">
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                    a. Naive Bayes (NLP & Anti-Spam)
+                  </span>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-200">
+                    {Math.round(mlPrediction.naiveBayes.confidence * 100)}% Conf
+                  </span>
+                </div>
+                <div className="space-y-1 text-[11px]">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Kategori Kegiatan:</span>
+                    <span className="font-bold text-emerald-300">
+                      {mlPrediction.naiveBayes.predictedCategory}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Filter Anti-Spam:</span>
+                    <span className={`font-semibold ${mlPrediction.naiveBayes.isSpam ? 'text-rose-400' : 'text-emerald-400'}`}>
+                      {mlPrediction.naiveBayes.isSpam ? '⚠️ Terdeteksi Spam/Ringkas' : '✓ Lolos Validasi'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Model 2: SVM */}
+              <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-emerald-300 flex items-center gap-1.5 text-[11px]">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    b. Support Vector Machine (SVM)
+                  </span>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                    mlPrediction.svm.recommendation === 'AUTO_APPROVE'
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                      : mlPrediction.svm.recommendation === 'AUTO_REJECT'
+                      ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                      : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                  }`}>
+                    {mlPrediction.svm.recommendation}
+                  </span>
+                </div>
+                <div className="space-y-1 text-[11px]">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Deteksi Risiko Bentrok:</span>
+                    <span className={`font-semibold ${mlPrediction.svm.hasConflictRisk ? 'text-rose-400' : 'text-emerald-400'}`}>
+                      {mlPrediction.svm.hasConflictRisk ? 'BENTROK TERDETEKSI' : 'Bebas Konflik Slot'}
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-slate-300 truncate">
+                    {mlPrediction.svm.reasons[0] || 'Kapasitas dan slot jadwal terverifikasi'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Model 3: Logistic Regression */}
+              <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-amber-300 flex items-center gap-1.5 text-[11px]">
+                    <TrendingUp className="w-3.5 h-3.5 text-amber-400" />
+                    c. Logistic Regression (No-Show Risk)
+                  </span>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                    mlPrediction.logisticRegression.isHighRisk
+                      ? 'bg-rose-500/20 text-rose-300'
+                      : 'bg-emerald-500/20 text-emerald-300'
+                  }`}>
+                    {mlPrediction.logisticRegression.noShowProbability}%
+                  </span>
+                </div>
+                <div className="space-y-1 text-[11px]">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Tingkat Risiko Mangkir:</span>
+                    <span className={`font-semibold ${mlPrediction.logisticRegression.isHighRisk ? 'text-rose-400' : 'text-emerald-400'}`}>
+                      {mlPrediction.logisticRegression.riskLevel === 'LOW' ? 'Rendah (Aman)' : 'Tinggi (Perlu Deposit/Konfirmasi)'}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-400">
+                    Berdasarkan rekam jejak peran {currentUser.role} & durasi {durationHours} jam
+                  </p>
+                </div>
+              </div>
+
+              {/* Model 4: Linear Regression */}
+              <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-sky-300 flex items-center gap-1.5 text-[11px]">
+                    <Zap className="w-3.5 h-3.5 text-sky-400" />
+                    d. Linear Regression (Energi Listrik)
+                  </span>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/20 text-sky-200">
+                    {mlPrediction.linearRegression.estimatedEnergyKwh} kWh
+                  </span>
+                </div>
+                <div className="space-y-1 text-[11px]">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Estimasi Beban Daya:</span>
+                    <span className="font-bold text-sky-300">
+                      AC: {mlPrediction.linearRegression.breakdown.coolingKwh} kWh | Alat: {mlPrediction.linearRegression.breakdown.deviceKwh} kWh
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-[10px] text-slate-400">
+                    <span>Estimasi Okupansi Mingguan:</span>
+                    <span className="text-slate-200 font-semibold">{mlPrediction.linearRegression.predictedOccupancyHours} Jam</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

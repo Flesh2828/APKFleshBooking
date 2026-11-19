@@ -19,6 +19,9 @@ class SupabaseService {
   static List<RoomModel> _cachedRooms = List.from(SeedData.initialRooms);
   static List<ReservationModel> _cachedReservations = SeedData.getInitialReservations();
 
+  static List<RoomModel> get cachedRooms => _cachedRooms;
+  static List<ReservationModel> get cachedReservations => _cachedReservations;
+
   static final StreamController<List<RoomModel>> _roomsStreamController =
       StreamController<List<RoomModel>>.broadcast();
   static final StreamController<List<ReservationModel>> _reservationsStreamController =
@@ -44,24 +47,27 @@ class SupabaseService {
   }) async {
     final cleanEmail = email.trim().toLowerCase();
 
-    // 1. Cek Demo Accounts matching Web
-    final demoMatch = SeedData.demoUsers.firstWhere(
+    // 1. Cek Demo Accounts matching Web (Instant Login 0ms!)
+    final demoMatches = SeedData.demoUsers.where(
       (u) => u.email.toLowerCase() == cleanEmail,
-      orElse: () => UserModel(
-        id: 'usr-${DateTime.now().millisecondsSinceEpoch}',
-        name: cleanEmail.split('@').first,
-        email: cleanEmail,
-        role: 'MAHASISWA',
-        department: 'Civitas Akademika Kampus',
-      ),
     );
 
-    // 2. Coba autentikasi Supabase nyata di background (non-blocking jika error RLS/credential)
+    if (demoMatches.isNotEmpty) {
+      _currentUser = demoMatches.first;
+      _isAuthenticated = true;
+      _userStreamController.add(_currentUser);
+      return _currentUser;
+    }
+
+    // 2. Akun Custom: Autentikasi Supabase nyata dengan timeout singkat 2 detik
     try {
-      await client.auth.signInWithPassword(
-        email: email.trim(),
-        password: password.trim(),
-      );
+      await client.auth
+          .signInWithPassword(
+            email: email.trim(),
+            password: password.trim(),
+          )
+          .timeout(const Duration(seconds: 2));
+
       final profile = await getCurrentUserProfile();
       if (profile != null) {
         _currentUser = profile;
@@ -70,10 +76,17 @@ class SupabaseService {
         return _currentUser;
       }
     } catch (_) {
-      // Jika Supabase auth belum memiliki user tersebut, gunakan demo profile
+      // Jika remote Supabase timeout / offline, fallback ke profil lokal
     }
 
-    _currentUser = demoMatch;
+    final fallbackUser = UserModel(
+      id: 'usr-${DateTime.now().millisecondsSinceEpoch}',
+      name: cleanEmail.split('@').first,
+      email: cleanEmail,
+      role: 'MAHASISWA',
+      department: 'Civitas Akademika Kampus',
+    );
+    _currentUser = fallbackUser;
     _isAuthenticated = true;
     _userStreamController.add(_currentUser);
     return _currentUser;
@@ -109,7 +122,8 @@ class SupabaseService {
           .from('profiles')
           .select()
           .eq('id', sbUser.id)
-          .maybeSingle();
+          .maybeSingle()
+          .timeout(const Duration(seconds: 2));
 
       if (res != null) {
         final profile = UserModel.fromJson(res);
@@ -140,7 +154,8 @@ class SupabaseService {
       final response = await client
           .from('rooms')
           .select()
-          .order('name', ascending: true);
+          .order('name', ascending: true)
+          .timeout(const Duration(seconds: 2));
 
       final list = (response as List).map((e) => RoomModel.fromJson(e)).toList();
       if (list.isNotEmpty) {
@@ -150,7 +165,7 @@ class SupabaseService {
       }
     } catch (_) {}
 
-    // Fallback data identik dengan web jika data Supabase kosong / anon RLS
+    // Fallback data identik dengan web jika data Supabase kosong / anon RLS / offline
     _roomsStreamController.add(_cachedRooms);
     return _cachedRooms;
   }
@@ -192,12 +207,14 @@ class SupabaseService {
         response = await client
             .from('reservations')
             .select('*, rooms(*)')
-            .order('start_time', ascending: false);
+            .order('start_time', ascending: false)
+            .timeout(const Duration(seconds: 2));
       } catch (_) {
         response = await client
             .from('reservations')
             .select('*')
-            .order('start_time', ascending: false);
+            .order('start_time', ascending: false)
+            .timeout(const Duration(seconds: 2));
       }
 
       final list = (response as List).map((e) {
@@ -311,7 +328,7 @@ class SupabaseService {
       orElse: () => _cachedRooms.first,
     );
 
-    final newId = 'RB-${DateTime.now().year}${DateTime.now().month.toString().padLeft(2, '0')}-${(_cachedReservations.length + 1).toString().padLeft(3, '0')}';
+    final newId = 'GS-${(100 + _cachedReservations.length + 1)}';
 
     final newReservation = ReservationModel(
       id: newId,
@@ -523,6 +540,50 @@ class SupabaseService {
       await client
           .from('reservations')
           .update({'status': 'CANCELLED'})
+          .eq('id', id);
+    } catch (_) {}
+  }
+
+  /// Smart Check-In Presensi Fisik (< 15 menit)
+  /// Mengubah status menjadi 'IN_USE' (Aktif Digunakan)
+  static Future<void> checkInReservation(String id) async {
+    final index = _cachedReservations.indexWhere((r) => r.id == id);
+    if (index != -1) {
+      final old = _cachedReservations[index];
+      _cachedReservations[index] = old.copyWith(
+        status: 'IN_USE',
+        notes: old.notes != null
+            ? '${old.notes} [Presensi Terverifikasi via Smart QR]'
+            : '[Presensi Terverifikasi via Smart QR]',
+      );
+      _notifyReservationsChanged();
+    }
+
+    try {
+      await client
+          .from('reservations')
+          .update({'status': 'IN_USE'})
+          .eq('id', id);
+    } catch (_) {}
+  }
+
+  /// Otomatis membatalkan pemesanan jika batas waktu 15 menit habis tanpa scan
+  /// Label: 'Dibatalkan (Ghost-Booking Terdeteksi)'
+  static Future<void> expireGhostBooking(String id) async {
+    final index = _cachedReservations.indexWhere((r) => r.id == id);
+    if (index != -1) {
+      final old = _cachedReservations[index];
+      _cachedReservations[index] = old.copyWith(
+        status: 'CANCELLED_GHOST',
+        notes: '[Dibatalkan: Ghost-Booking Terdeteksi - Melebihi countdown 15 menit presensi]',
+      );
+      _notifyReservationsChanged();
+    }
+
+    try {
+      await client
+          .from('reservations')
+          .update({'status': 'CANCELLED_GHOST'})
           .eq('id', id);
     } catch (_) {}
   }

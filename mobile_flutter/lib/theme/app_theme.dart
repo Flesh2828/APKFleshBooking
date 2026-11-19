@@ -1,27 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Palet warna dan spesifikasi token visual RoomBook Frosted Light Glassmorphism.
-/// Mengacu langsung ke DESIGN.md dan hasil ekspor Google Stitch (_stitch_ref/).
+/// Palet warna dan spesifikasi token visual GuildSpace Frosted Light Glassmorphism.
+/// Menampilkan Glassmorphism modern dengan aksen warna Indigo & Emerald.
 class AppColors {
-  // Brand Primary & Accents (Teal Palette)
-  static const Color brandTeal = Color(0xFF0D9488); // Teal 600
-  static const Color brandTealDark = Color(0xFF0F766E); // Teal 700
-  static const Color brandTealLight = Color(0xFF14B8A6); // Teal 500
-  static const Color brandMint = Color(0xFFCCFBF1); // Mint Tint
-  static const Color brandMintSurface = Color(0xFFE8F2EE);
+  // Brand Primary & Accents (GuildSpace Indigo & Emerald Palette)
+  static const Color brandIndigo = Color(0xFF4F46E5); // Indigo 600
+  static const Color brandIndigoDark = Color(0xFF3730A3); // Indigo 800
+  static const Color brandIndigoLight = Color(0xFF6366F1); // Indigo 500
+  
+  static const Color brandEmerald = Color(0xFF10B981); // Emerald 500
+  static const Color brandEmeraldDark = Color(0xFF059669); // Emerald 600
+  static const Color brandEmeraldLight = Color(0xFF34D399); // Emerald 400
+  static const Color brandEmeraldMint = Color(0xFFD1FAE5); // Emerald 100
+  static const Color brandEmeraldSurface = Color(0xFFECFDF5);
 
-  // Backward compatibility aliases
-  static const Color primary = brandTeal;
-  static const Color primaryDark = brandTealDark;
-  static const Color primaryLight = brandTealLight;
-  static const Color secondary = Color(0xFF0EA5E9); // Sky 500
+  // Backward compatibility aliases mapped to new Indigo & Emerald brand
+  static const Color brandTeal = brandIndigo;
+  static const Color brandTealDark = brandIndigoDark;
+  static const Color brandTealLight = brandIndigoLight;
+  static const Color brandMint = brandEmeraldMint;
+  static const Color brandMintSurface = brandEmeraldSurface;
 
-  // Background & Canvas (Architectural Soft Off-White Mesh)
-  static const Color canvasMeshStart = Color(0xFFF3F6FA);
-  static const Color canvasMeshMid = Color(0xFFEBF3F8);
-  static const Color canvasMeshEnd = Color(0xFFE8F2EE);
-  static const Color background = Color(0xFFF3F6FA);
+  static const Color primary = brandIndigo;
+  static const Color primaryDark = brandIndigoDark;
+  static const Color primaryLight = brandIndigoLight;
+  static const Color secondary = brandEmerald;
+  static const Color accent = brandEmerald;
+
+  // Background & Canvas (Architectural Soft Off-White Mesh with subtle Indigo-Emerald tint)
+  static const Color canvasMeshStart = Color(0xFFF6F8FC);
+  static const Color canvasMeshMid = Color(0xFFEFF3F9);
+  static const Color canvasMeshEnd = Color(0xFFEAF5EE);
+  static const Color background = Color(0xFFF6F8FC);
 
   // Glass Surfaces & Containers
   static const Color glassSurfaceCard = Color(0xC2FFFFFF); // ~76% White
@@ -40,7 +51,7 @@ class AppColors {
   static const Color glassBorderSubtle = Color(0xB3FFFFFF); // 70% White
   static const Color border = Color(0xFFE2E8F0); // Slate 200
   static const Color borderSubtle = Color(0xFFCBD5E1); // Slate 300
-  static const Color borderHighlight = brandTeal;
+  static const Color borderHighlight = brandIndigo;
 
   // Typography Colors (High-Contrast Charcoal & Slate)
   static const Color textPrimary = Color(0xFF0F172A); // Slate 900
@@ -49,16 +60,23 @@ class AppColors {
   static const Color textWhite = Colors.white;
 
   // Ambient Lighting Orbs
-  static Color ambientTeal = const Color(0xFF0D9488).withValues(alpha: 0.18);
-  static Color ambientSky = const Color(0xFF0EA5E9).withValues(alpha: 0.16);
+  static Color ambientIndigo = const Color(0xFF4F46E5).withValues(alpha: 0.20);
+  static Color ambientEmerald = const Color(0xFF10B981).withValues(alpha: 0.18);
+  static Color ambientTeal = ambientEmerald;
+  static Color ambientSky = const Color(0xFF6366F1).withValues(alpha: 0.14);
   static Color ambientAmber = const Color(0xFFF59E0B).withValues(alpha: 0.12);
 
   // Semantic Status Colors (Accessibility & High Contrast Specs)
-  // 1. AVAILABLE (Emerald)
+  // 1. AVAILABLE / IN_USE (Emerald)
   static const Color statusAvailable = Color(0xFF10B981);
   static const Color statusAvailableBg = Color(0xFFECFDF5);
   static const Color statusAvailableBorder = Color(0xFFA7F3D0);
   static const Color statusAvailableText = Color(0xFF065F46);
+
+  static const Color statusInUse = Color(0xFF059669);
+  static const Color statusInUseBg = Color(0xFFD1FAE5);
+  static const Color statusInUseBorder = Color(0xFF34D399);
+  static const Color statusInUseText = Color(0xFF064E3B);
 
   // 2. BOOKED / REJECTED (Rose)
   static const Color statusBooked = Color(0xFFE11D48);
@@ -84,25 +102,37 @@ class AppColors {
   static const Color statusCancelled = statusMaintenance;
   static const Color statusCancelledBg = statusMaintenanceBg;
 
-  // 5. COMPLETED (Teal)
-  static const Color statusCompleted = brandTeal;
-  static const Color statusCompletedBg = Color(0xFFCCFBF1);
+  // 5. GHOST-BOOKING CANCELLED (Rose-Amber Alert)
+  static const Color statusGhostBooking = Color(0xFFBE123C);
+  static const Color statusGhostBookingBg = Color(0xFFFFF1F2);
+  static const Color statusGhostBookingBorder = Color(0xFFFDA4AF);
+  static const Color statusGhostBookingText = Color(0xFF881337);
 
-  // Brand Gradients
+  // 6. COMPLETED (Emerald)
+  static const Color statusCompleted = brandEmeraldDark;
+  static const Color statusCompletedBg = brandEmeraldMint;
+
+  // Brand Gradients (Indigo to Emerald Fusion)
+  static const LinearGradient brandGradient = LinearGradient(
+    colors: [brandIndigo, brandEmeraldDark],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
   static const LinearGradient tealGradient = LinearGradient(
-    colors: [brandTealDark, brandTeal],
+    colors: [brandIndigo, brandEmeraldDark],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient welcomeGradient = LinearGradient(
-    colors: [brandTealDark, brandTeal, Color(0xFF0EA5E9)],
+    colors: [brandIndigoDark, brandIndigo, brandEmerald],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [brandTealDark, brandTeal],
+    colors: [brandIndigoDark, brandIndigo],
     begin: Alignment.centerLeft,
     end: Alignment.centerRight,
   );

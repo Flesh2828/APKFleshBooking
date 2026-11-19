@@ -53,16 +53,35 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   Future<void> _fetchDashboardData() async {
-    setState(() => _isLoading = true);
-    final rooms = await SupabaseService.getRooms();
-    final resvs = await SupabaseService.getAllReservations();
+    // 1. Tampilkan data dari cache instan (0ms First Frame Render!)
+    if (_rooms.isEmpty) {
+      _rooms = SupabaseService.cachedRooms;
+    }
+    if (_reservations.isEmpty) {
+      _reservations = SupabaseService.cachedReservations;
+    }
+    if (_rooms.isNotEmpty && _isLoading) {
+      setState(() => _isLoading = false);
+    }
 
-    if (mounted) {
-      setState(() {
-        _rooms = rooms;
-        _reservations = resvs;
-        _isLoading = false;
-      });
+    // 2. Refresh data Supabase secara paralel di background
+    try {
+      final results = await Future.wait([
+        SupabaseService.getRooms(),
+        SupabaseService.getAllReservations(),
+      ]);
+
+      if (mounted) {
+        setState(() {
+          _rooms = results[0] as List<RoomModel>;
+          _reservations = results[1] as List<ReservationModel>;
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -266,99 +285,100 @@ class _HomeTabState extends State<HomeTab> {
 
   Widget _buildTopHeader(UserModel user, bool isAdmin, int pendingAdminCount) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Row(
+        Stack(
+          clipBehavior: Clip.none,
           children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                CircleAvatar(
-                  radius: 22,
-                  backgroundColor: AppColors.brandTeal,
-                  child: Text(
-                    user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
-                  ),
+            CircleAvatar(
+              radius: 22,
+              backgroundColor: AppColors.brandIndigo,
+              child: Text(
+                user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
                 ),
-                Positioned(
-                  bottom: -1,
-                  right: -1,
-                  child: Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: AppColors.statusAvailable,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Halo, ${user.name.split(' ').first} 👋',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
-                    letterSpacing: -0.2,
-                  ),
+            Positioned(
+              bottom: -1,
+              right: -1,
+              child: Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: AppColors.statusAvailable,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
                 ),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppColors.brandMint,
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                          color: AppColors.brandTealLight.withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: Text(
-                        isAdmin ? 'ADMINISTRATOR' : user.roleLabel.toUpperCase(),
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.brandTealDark,
-                          letterSpacing: 0.3,
-                        ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Halo, ${user.name.split(' ').first} 👋',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                  letterSpacing: -0.2,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppColors.brandEmeraldMint,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: AppColors.brandEmerald.withValues(alpha: 0.3),
                       ),
                     ),
-                    const SizedBox(width: 6),
-                    Text(
+                    child: Text(
+                      isAdmin ? 'ADMINISTRATOR' : user.roleLabel.toUpperCase(),
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.brandEmeraldDark,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
                       user.department ?? (isAdmin ? 'Sarpras Kampus' : 'Civitas'),
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         color: AppColors.textMuted,
                         fontWeight: FontWeight.w500,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ],
-                ),
-              ],
-            ),
-          ],
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
+        const SizedBox(width: 8),
 
         // Notification Bell Button with Ping Indicator
         InkWell(
           onTap: () {
-            if (isAdmin) {
-              widget.onNavigateToTab(3);
-            } else {
-              widget.onNavigateToTab(3);
-            }
+            widget.onNavigateToTab(3);
           },
           borderRadius: BorderRadius.circular(16),
           child: GlassSurface(
@@ -1343,16 +1363,16 @@ class _HomeTabState extends State<HomeTab> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.brandMint.withValues(alpha: 0.6),
+        color: AppColors.brandEmeraldMint.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.brandTealLight.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.brandEmerald.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              gradient: AppColors.tealGradient,
+              gradient: AppColors.brandGradient,
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(Icons.auto_awesome, color: Colors.white, size: 16),
@@ -1363,7 +1383,7 @@ class _HomeTabState extends State<HomeTab> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'AI Auto-Approval Engine',
+                  'GuildSpace AI Engine (4 Model)',
                   style: GoogleFonts.plusJakartaSans(
                     fontWeight: FontWeight.w800,
                     fontSize: 12.5,
@@ -1371,7 +1391,7 @@ class _HomeTabState extends State<HomeTab> {
                   ),
                 ),
                 Text(
-                  'Estimasi verifikasi cepat < 15 menit via Supabase ML',
+                  'Naive Bayes • SVM • Logistic • Linear Reg',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 10.5,
                     color: AppColors.textSecondary,
@@ -1385,14 +1405,14 @@ class _HomeTabState extends State<HomeTab> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.brandTeal.withValues(alpha: 0.3)),
+              border: Border.all(color: AppColors.brandEmerald.withValues(alpha: 0.3)),
             ),
             child: Text(
-              'SVM Active',
+              '4-ML Active',
               style: GoogleFonts.jetBrainsMono(
                 fontSize: 9.5,
                 fontWeight: FontWeight.w800,
-                color: AppColors.brandTealDark,
+                color: AppColors.brandEmeraldDark,
               ),
             ),
           ),

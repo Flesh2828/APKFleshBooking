@@ -108,7 +108,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     ];
 
     final List<String> titles = [
-      'RoomBook',
+      'GuildSpace',
       'Katalog Ruangan',
       'Kalender Ketersediaan',
       isAdmin ? 'Persetujuan Pengajuan' : 'Reservasi Saya',
@@ -127,95 +127,159 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           child: SafeArea(
             bottom: false,
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Brand Logo & Title
+                // Brand Logo & Title (Wrapped in Expanded to prevent any overflow)
+                Expanded(
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          gradient: AppColors.brandGradient,
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.brandIndigo.withValues(alpha: 0.25),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Center(
+                          child: Text(
+                            'GS',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 12.5,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              titles[safeIndex],
+                              style: GoogleFonts.plusJakartaSans(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 14.5,
+                                color: AppColors.textPrimary,
+                                letterSpacing: -0.2,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (safeIndex == 0)
+                              Text(
+                                'Smart Hub & Space Management',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 10,
+                                  color: AppColors.textMuted,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 6),
+
+                // Right Actions: + Ajukan Button & Profile Chip
                 Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
+                    // + Ajukan Booking Quick Action Button
                     Container(
-                      padding: const EdgeInsets.all(7),
+                      height: 28,
                       decoration: BoxDecoration(
-                        gradient: AppColors.tealGradient,
-                        borderRadius: BorderRadius.circular(12),
+                        gradient: AppColors.brandGradient,
+                        borderRadius: BorderRadius.circular(14),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.brandTeal.withValues(alpha: 0.25),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
+                            color: AppColors.brandIndigo.withValues(alpha: 0.25),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1.5),
                           ),
                         ],
                       ),
-                      child: const Icon(
-                        Icons.meeting_room_rounded,
-                        size: 18,
-                        color: Colors.white,
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: _openBookingForm,
+                          borderRadius: BorderRadius.circular(14),
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 8),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.add_rounded, size: 14, color: Colors.white),
+                                SizedBox(width: 2),
+                                Text(
+                                  'Ajukan',
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white,
+                                    letterSpacing: 0.2,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          titles[safeIndex],
-                          style: GoogleFonts.plusJakartaSans(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 16,
-                            color: AppColors.textPrimary,
-                            letterSpacing: -0.2,
-                          ),
-                        ),
-                        if (safeIndex == 0)
-                          Text(
-                            'Campus Facilities Portal',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontWeight: FontWeight.w500,
-                              fontSize: 10.5,
-                              color: AppColors.textMuted,
+                    const SizedBox(width: 6),
+
+                    // Profile & Role Chip (Taps to Tab 4 Profile)
+                    InkWell(
+                      onTap: () => _onTabSelected(4),
+                      borderRadius: BorderRadius.circular(18),
+                      child: GlassSurface(
+                        tier: GlassTier.pill,
+                        borderRadius: BorderRadius.circular(18),
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CircleAvatar(
+                              radius: 9.5,
+                              backgroundColor: AppColors.brandIndigo,
+                              child: Text(
+                                _currentUser.name.isNotEmpty
+                                    ? _currentUser.name[0].toUpperCase()
+                                    : 'U',
+                                style: const TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                ),
+                              ),
                             ),
-                          ),
-                      ],
+                            const SizedBox(width: 4),
+                            Text(
+                              isAdmin ? 'Admin' : _currentUser.roleLabel,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.brandIndigo,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
-                ),
-
-                // Right Profile & Role Chip (Taps to Tab 4 Profile)
-                InkWell(
-                  onTap: () => _onTabSelected(4),
-                  borderRadius: BorderRadius.circular(20),
-                  child: GlassSurface(
-                    tier: GlassTier.pill,
-                    borderRadius: BorderRadius.circular(20),
-                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4.5),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        CircleAvatar(
-                          radius: 11,
-                          backgroundColor: AppColors.brandTeal,
-                          child: Text(
-                            _currentUser.name.isNotEmpty
-                                ? _currentUser.name[0].toUpperCase()
-                                : 'U',
-                            style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          isAdmin ? 'Admin' : _currentUser.roleLabel,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.brandTealDark,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 ),
               ],
             ),

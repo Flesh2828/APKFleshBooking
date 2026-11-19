@@ -31,7 +31,12 @@ class _RoomsTabState extends State<RoomsTab> {
   }
 
   Future<void> _loadRooms() async {
-    setState(() => _isLoading = true);
+    if (_rooms.isEmpty) {
+      _rooms = SupabaseService.cachedRooms;
+      if (_rooms.isNotEmpty && _isLoading) {
+        setState(() => _isLoading = false);
+      }
+    }
     final data = await SupabaseService.getRooms();
     if (mounted) {
       setState(() {
@@ -358,7 +363,7 @@ class _RoomsTabState extends State<RoomsTab> {
                     : RefreshIndicator(
                         onRefresh: _loadRooms,
                         child: ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
                           itemCount: _filteredRooms.length,
                           itemBuilder: (context, index) {
                             return _buildRoomCard(_filteredRooms[index]);

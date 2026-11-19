@@ -14,36 +14,45 @@ class MlNoShowBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!logisticResult.isHighRisk) {
-      return const SizedBox.shrink();
-    }
-
     final percentage = (logisticResult.noShowProbability * 100).toInt();
+    final isHigh = logisticResult.isHighRisk;
+
+    final bannerBg = isHigh
+        ? AppColors.statusPendingBg.withValues(alpha: 0.35)
+        : AppColors.statusAvailableBg.withValues(alpha: 0.35);
+    final bannerBorder = isHigh
+        ? AppColors.statusPending.withValues(alpha: 0.5)
+        : AppColors.statusAvailable.withValues(alpha: 0.5);
+    final iconColor = isHigh ? AppColors.statusPending : AppColors.statusAvailable;
+    final iconData = isHigh ? Icons.warning_amber_rounded : Icons.verified_user_rounded;
+    final titleText = isHigh
+        ? 'Perhatian: Indikator Risiko No-Show Tinggi ($percentage%)'
+        : 'Indikator Risiko No-Show Terkendali ($percentage% - Rendah)';
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.statusPendingBg.withValues(alpha: 0.35),
+        color: bannerBg,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.statusPending.withValues(alpha: 0.5)),
+        border: Border.all(color: bannerBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(
-                Icons.warning_amber_rounded,
-                color: AppColors.statusPending,
+              Icon(
+                iconData,
+                color: iconColor,
                 size: 20,
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Perhatian: Indikator Risiko No-Show Tinggi ($percentage%)',
-                  style: const TextStyle(
-                    color: AppColors.statusPending,
+                  titleText,
+                  style: TextStyle(
+                    color: iconColor,
                     fontWeight: FontWeight.bold,
                     fontSize: 12,
                   ),
@@ -52,9 +61,11 @@ class MlNoShowBanner extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Berdasarkan pola riwayat reservasi, pastikan Anda mengonfirmasi kehadiran tepat waktu untuk menghindari pembatalan otomatis.',
-            style: TextStyle(
+          Text(
+            isHigh
+                ? 'Berdasarkan model Logistic Regression, profil pemohon memiliki probabilitas no-show tinggi ($percentage%). Verifikasi komitmen kehadiran diperlukan.'
+                : 'Berdasarkan model Logistic Regression, rekam jejak pemohon sangat baik dengan probabilitas mangkir hanya $percentage%.',
+            style: const TextStyle(
               color: AppColors.textSecondary,
               fontSize: 11,
             ),

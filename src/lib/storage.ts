@@ -2,13 +2,13 @@ import { User, Room, Reservation, ReservationLog, InAppNotification, Reservation
 import { INITIAL_USERS, INITIAL_ROOMS, INITIAL_RESERVATIONS, INITIAL_LOGS, INITIAL_NOTIFICATIONS } from './data';
 
 const STORAGE_KEYS = {
-  USERS: 'roombook_users_v1',
-  ROOMS: 'roombook_rooms_v1',
-  RESERVATIONS: 'roombook_reservations_v1',
-  LOGS: 'roombook_logs_v1',
-  NOTIFICATIONS: 'roombook_notifications_v1',
-  CURRENT_USER: 'roombook_current_user_v1',
-  AUTH_SESSION: 'roombook_auth_session_v1',
+  USERS: 'guildspace_users_v2',
+  ROOMS: 'guildspace_rooms_v2',
+  RESERVATIONS: 'guildspace_reservations_v2',
+  LOGS: 'guildspace_logs_v2',
+  NOTIFICATIONS: 'guildspace_notifications_v2',
+  CURRENT_USER: 'guildspace_current_user_v2',
+  AUTH_SESSION: 'guildspace_auth_session_v2',
 };
 
 function safeGet<T>(key: string, fallback: T): T {
@@ -254,11 +254,11 @@ export const StorageService = {
       };
     }
 
-    // Generate unique ID: RB-YYYYMM-XXX
+    // Generate unique ID: GS-XXX (e.g. GS-101, GS-204)
     const now = new Date();
-    const yearMonth = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const randomSuffix = String(Math.floor(Math.random() * 900) + 100);
-    const newId = `RB-${yearMonth}-${randomSuffix}`;
+    const count = reservations.length + 1;
+    const randomSuffix = String(100 + (count % 899));
+    const newId = `GS-${randomSuffix}`;
 
     const newReservation: Reservation = {
       ...data,
@@ -358,6 +358,14 @@ export const StorageService = {
       notifTitle = 'Reservasi Disetujui! ✅';
       notifType = 'SUCCESS';
       notifMessage = `Pengajuan ruangan ${room?.name || ''} untuk "${currentReservation.purpose}" telah disetujui.`;
+    } else if (newStatus === 'IN_USE') {
+      notifTitle = 'Presensi Fisik Berhasil (Aktif Digunakan) 🟢';
+      notifType = 'SUCCESS';
+      notifMessage = `Validasi Smart Check-in QR sukses! Ruangan ${room?.name || ''} saat ini berstatus Aktif Digunakan.`;
+    } else if (newStatus === 'CANCELLED_GHOST') {
+      notifTitle = 'Ghost-Booking Terdeteksi ⚠️';
+      notifType = 'DANGER';
+      notifMessage = `Reservasi ${room?.name || ''} otomatis dibatalkan karena batas waktu scan 15 menit telah terlewati.`;
     } else if (newStatus === 'REJECTED') {
       notifTitle = 'Pengajuan Ditolak ❌';
       notifType = 'DANGER';
@@ -381,6 +389,24 @@ export const StorageService = {
     safeSet(STORAGE_KEYS.NOTIFICATIONS, notifications);
 
     return { success: true };
+  },
+
+  checkInReservation: (reservationId: string, currentUser: User): { success: boolean; error?: string } => {
+    return StorageService.updateReservationStatus(
+      reservationId,
+      'IN_USE',
+      currentUser,
+      'Smart Check-In QR Presensi Fisik Terverifikasi (< 15 menit). Ruangan resmi Aktif Digunakan.'
+    );
+  },
+
+  expireGhostBooking: (reservationId: string, currentUser: User): { success: boolean; error?: string } => {
+    return StorageService.updateReservationStatus(
+      reservationId,
+      'CANCELLED_GHOST',
+      currentUser,
+      'Dibatalkan (Ghost-Booking Terdeteksi): Melewati batas toleransi countdown 15 menit tanpa presensi fisik.'
+    );
   },
 
   // NOTIFICATIONS

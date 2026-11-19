@@ -28,7 +28,14 @@ export interface Room {
   description: string;
 }
 
-export type ReservationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'COMPLETED';
+export type ReservationStatus = 
+  | 'PENDING' 
+  | 'APPROVED' 
+  | 'REJECTED' 
+  | 'CANCELLED' 
+  | 'COMPLETED'
+  | 'IN_USE'
+  | 'CANCELLED_GHOST';
 
 export interface Reservation {
   id: string;

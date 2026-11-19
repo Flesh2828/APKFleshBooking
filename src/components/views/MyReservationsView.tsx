@@ -18,14 +18,45 @@ import {
   FileText,
   X,
   PlusCircle,
+  QrCode,
+  Smartphone,
+  Timer,
+  ShieldAlert,
+  Sparkles,
 } from 'lucide-react';
 
 export const MyReservationsView = () => {
-  const { currentUser, rooms, reservations, logs, cancelReservation, setActiveTab } = useApp();
+  const { currentUser, rooms, reservations, logs, cancelReservation, checkInReservation, expireGhostBooking, setActiveTab } = useApp();
 
-  const [activeFilter, setActiveFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED'>('ALL');
+  const [activeFilter, setActiveFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'IN_USE' | 'REJECTED' | 'CANCELLED'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSlipReservation, setSelectedSlipReservation] = useState<Reservation | null>(null);
+  const [selectedQrReservation, setSelectedQrReservation] = useState<Reservation | null>(null);
+  const [countdownSeconds, setCountdownSeconds] = useState<number>(14 * 60 + 58); // 14m 58s
+  const [isScanningSimulated, setIsScanningSimulated] = useState(false);
+
+  // 15-minute countdown timer effect for active QR Pass modal
+  React.useEffect(() => {
+    if (!selectedQrReservation) return;
+    const interval = setInterval(() => {
+      setCountdownSeconds((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          expireGhostBooking(selectedQrReservation.id);
+          setSelectedQrReservation(null);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [selectedQrReservation, expireGhostBooking]);
+
+  const formatCountdown = (totalSec: number) => {
+    const mins = Math.floor(totalSec / 60);
+    const secs = totalSec % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
 
   // Filter reservations for current user
   const userReservations = useMemo(() => {
@@ -181,24 +212,34 @@ export const MyReservationsView = () => {
                   <div className="flex items-center gap-2">
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-extrabold flex items-center gap-1.5 ${
-                        res.status === 'APPROVED'
+                        res.status === 'IN_USE'
+                          ? 'bg-emerald-500 text-white shadow-sm ring-2 ring-emerald-400/40'
+                          : res.status === 'APPROVED'
                           ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
                           : res.status === 'PENDING'
                           ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                          : res.status === 'CANCELLED_GHOST'
+                          ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-300'
                           : res.status === 'REJECTED'
                           ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
                           : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
                       }`}
                     >
+                      {res.status === 'IN_USE' && <span className="w-2 h-2 rounded-full bg-white animate-ping" />}
                       {res.status === 'APPROVED' && <CheckCircle2 className="w-3.5 h-3.5" />}
                       {res.status === 'PENDING' && <Clock className="w-3.5 h-3.5" />}
+                      {res.status === 'CANCELLED_GHOST' && <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />}
                       {res.status === 'REJECTED' && <XCircle className="w-3.5 h-3.5" />}
                       {res.status === 'CANCELLED' && <Ban className="w-3.5 h-3.5" />}
                       <span>
-                        {res.status === 'APPROVED'
+                        {res.status === 'IN_USE'
+                          ? 'Aktif Digunakan'
+                          : res.status === 'APPROVED'
                           ? 'Disetujui'
                           : res.status === 'PENDING'
                           ? 'Menunggu Persetujuan'
+                          : res.status === 'CANCELLED_GHOST'
+                          ? 'Dibatalkan (Ghost-Booking Terdeteksi)'
                           : res.status === 'REJECTED'
                           ? 'Ditolak'
                           : 'Dibatalkan'}
@@ -234,17 +275,54 @@ export const MyReservationsView = () => {
                         {res.additionalFacilities}
                       </p>
                     )}
+
+                    {res.status === 'IN_USE' && (
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-xs font-semibold border border-emerald-200 dark:border-emerald-800">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                        Presensi fisik terverifikasi via Smart Pass. Ruangan aktif digunakan.
+                      </div>
+                    )}
+
+                    {res.status === 'CANCELLED_GHOST' && (
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 text-xs font-semibold border border-rose-200 dark:border-rose-800">
+                        <ShieldAlert className="w-3.5 h-3.5" />
+                        Sistem mendeteksi no-show: tidak ada scan QR presensi dalam toleransi 15 menit.
+                      </div>
+                    )}
                   </div>
 
                   {/* Actions Column */}
                   <div className="flex md:flex-col justify-end md:justify-center items-end gap-2">
                     {res.status === 'APPROVED' && (
+                      <>
+                        <button
+                          onClick={() => {
+                            setCountdownSeconds(14 * 60 + 58);
+                            setSelectedQrReservation(res);
+                          }}
+                          className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-emerald-600 hover:from-indigo-700 hover:to-emerald-700 text-white text-xs font-bold transition-all shadow-md shadow-indigo-600/20 flex items-center gap-1.5"
+                        >
+                          <QrCode className="w-3.5 h-3.5" />
+                          <span>Smart Pass & QR</span>
+                        </button>
+
+                        <button
+                          onClick={() => setSelectedSlipReservation(res)}
+                          className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors flex items-center gap-1.5"
+                        >
+                          <Printer className="w-3.5 h-3.5" />
+                          <span>Slip Izin</span>
+                        </button>
+                      </>
+                    )}
+
+                    {res.status === 'IN_USE' && (
                       <button
                         onClick={() => setSelectedSlipReservation(res)}
-                        className="px-3.5 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition-colors flex items-center gap-1.5"
+                        className="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold transition-colors flex items-center gap-1.5 border border-emerald-200"
                       >
                         <Printer className="w-3.5 h-3.5" />
-                        <span>Cetak Slip Izin</span>
+                        <span>Slip Izin Aktif</span>
                       </button>
                     )}
 
@@ -293,7 +371,7 @@ export const MyReservationsView = () => {
               <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400">
                 Surat Izin Pemakaian Ruangan Resmi
               </span>
-              <h2 className="text-xl font-black tracking-tight">KAMPUS ROOMBOOK TERPADU</h2>
+              <h2 className="text-xl font-black tracking-tight">GUILDSPACE CAMPUS SMART HUB</h2>
               <p className="text-xs text-slate-500">
                 Bagian Sarana & Prasarana Kampus • Validasi Digital Sistem Terpusat
               </p>
@@ -353,6 +431,164 @@ export const MyReservationsView = () => {
               >
                 <Printer className="w-4 h-4" />
                 <span>Cetak / Simpan PDF</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SMART CHECK-IN DYNAMIC QR PASS & ANTI GHOST-BOOKING MODAL */}
+      {selectedQrReservation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white rounded-3xl max-w-md w-full p-6 sm:p-7 space-y-5 shadow-2xl relative border border-indigo-200 dark:border-indigo-900/50">
+            <button
+              onClick={() => setSelectedQrReservation(null)}
+              className="absolute top-4 right-4 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-800 dark:hover:text-white"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            {/* Modal Title */}
+            <div className="text-center space-y-1">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-[11px] font-black uppercase tracking-wider">
+                <Sparkles className="w-3.5 h-3.5" />
+                GuildSpace Smart Pass
+              </div>
+              <h2 className="text-xl font-black tracking-tight">Dynamic QR Check-In</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Tunjukkan QR Code ini pada pemindai pintu ruangan untuk presensi fisik.
+              </p>
+            </div>
+
+            {/* 15-Minute Countdown Badge (Anti Ghost-Booking) */}
+            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 to-rose-50 dark:from-amber-950/30 dark:to-rose-950/30 border border-amber-200 dark:border-amber-800/40 text-center space-y-1">
+              <div className="flex items-center justify-center gap-2 text-xs font-bold text-amber-800 dark:text-amber-300">
+                <Timer className="w-4 h-4 animate-spin text-amber-600" />
+                <span>Batas Waktu Validasi Presensi Fisik:</span>
+                <span className="font-mono text-sm font-black text-rose-600 dark:text-rose-400 bg-white dark:bg-slate-800 px-2 py-0.5 rounded-lg border border-rose-200">
+                  {formatCountdown(countdownSeconds)}
+                </span>
+              </div>
+              <p className="text-[10px] text-amber-700/80 dark:text-amber-400/80">
+                Jika batas 15 menit habis tanpa scan, status otomatis dibatalkan: <strong>Dibatalkan (Ghost-Booking Terdeteksi)</strong>.
+              </p>
+            </div>
+
+            {/* Dynamic QR Display Box with High-Tech Frame */}
+            <div className="flex flex-col items-center justify-center p-6 bg-slate-900 rounded-3xl border-2 border-indigo-500/40 shadow-inner relative overflow-hidden group">
+              {/* Corner Accents */}
+              <div className="absolute top-3 left-3 w-4 h-4 border-t-2 border-l-2 border-emerald-400" />
+              <div className="absolute top-3 right-3 w-4 h-4 border-t-2 border-r-2 border-emerald-400" />
+              <div className="absolute bottom-3 left-3 w-4 h-4 border-b-2 border-l-2 border-emerald-400" />
+              <div className="absolute bottom-3 right-3 w-4 h-4 border-b-2 border-r-2 border-emerald-400" />
+
+              {/* Laser Scanning Line Animation Simulation */}
+              <div className="absolute inset-x-4 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent animate-pulse shadow-sm shadow-emerald-400" />
+
+              {/* QR Pattern Representation */}
+              <div className="w-44 h-44 bg-white rounded-2xl p-3 flex flex-col items-center justify-between shadow-2xl relative">
+                <svg className="w-full h-full text-slate-900" viewBox="0 0 100 100" fill="currentColor">
+                  {/* Outer Frame & Targets */}
+                  <rect x="5" y="5" width="26" height="26" fill="black" rx="3" />
+                  <rect x="9" y="9" width="18" height="18" fill="white" rx="2" />
+                  <rect x="13" y="13" width="10" height="10" fill="black" rx="1" />
+
+                  <rect x="69" y="5" width="26" height="26" fill="black" rx="3" />
+                  <rect x="73" y="9" width="18" height="18" fill="white" rx="2" />
+                  <rect x="77" y="13" width="10" height="10" fill="black" rx="1" />
+
+                  <rect x="5" y="69" width="26" height="26" fill="black" rx="3" />
+                  <rect x="9" y="73" width="18" height="18" fill="white" rx="2" />
+                  <rect x="13" y="77" width="10" height="10" fill="black" rx="1" />
+
+                  {/* QR Matrix Dots */}
+                  <rect x="36" y="8" width="8" height="6" fill="black" />
+                  <rect x="48" y="10" width="6" height="6" fill="black" />
+                  <rect x="36" y="20" width="6" height="8" fill="black" />
+                  <rect x="46" y="22" width="12" height="6" fill="black" />
+                  
+                  <rect x="8" y="36" width="6" height="8" fill="black" />
+                  <rect x="20" y="38" width="10" height="6" fill="black" />
+                  <rect x="8" y="48" width="8" height="8" fill="black" />
+                  
+                  {/* Center GuildSpace GS Logo Badge */}
+                  <circle cx="50" cy="50" r="14" fill="#4F46E5" />
+                  <text x="50" y="55" fontSize="11" fontWeight="900" fill="white" textAnchor="middle" fontFamily="sans-serif">GS</text>
+
+                  <rect x="68" y="36" width="12" height="6" fill="black" />
+                  <rect x="84" y="36" width="8" height="10" fill="black" />
+                  <rect x="70" y="48" width="8" height="8" fill="black" />
+                  <rect x="82" y="52" width="10" height="6" fill="black" />
+
+                  <rect x="36" y="68" width="10" height="8" fill="black" />
+                  <rect x="50" y="70" width="8" height="8" fill="black" />
+                  <rect x="38" y="80" width="6" height="10" fill="black" />
+                  <rect x="48" y="82" width="14" height="6" fill="black" />
+                  
+                  <rect x="68" y="68" width="8" height="8" fill="black" />
+                  <rect x="80" y="72" width="10" height="6" fill="black" />
+                  <rect x="72" y="82" width="8" height="8" fill="black" />
+                  <rect x="84" y="82" width="8" height="8" fill="black" />
+                </svg>
+              </div>
+
+              {/* Dynamic Hash String */}
+              <div className="mt-3 text-center">
+                <span className="font-mono text-[10px] text-emerald-300 font-bold tracking-wider block">
+                  #{selectedQrReservation.id} • DYNAMIC TOKEN
+                </span>
+                <span className="text-[9px] text-slate-400 font-mono">
+                  GUILDSPACE:CHECKIN:{selectedQrReservation.id}:{selectedQrReservation.roomId}
+                </span>
+              </div>
+            </div>
+
+            {/* Reservation Summary */}
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800 text-xs space-y-1.5 border border-slate-200 dark:border-slate-700">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Ruangan:</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">
+                  {rooms.find((r) => r.id === selectedQrReservation.roomId)?.name}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Pemohon:</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200">
+                  {selectedQrReservation.userName}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Jadwal:</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200">
+                  {formatDateTime(selectedQrReservation.startTime, selectedQrReservation.endTime)}
+                </span>
+              </div>
+            </div>
+
+            {/* Interactive Simulation Controls */}
+            <div className="space-y-2 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  checkInReservation(selectedQrReservation.id);
+                  setSelectedQrReservation(null);
+                }}
+                className="w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Smartphone className="w-4 h-4" />
+                <span>Simulasikan Scan QR Presensi Fisik (Check-In Sukses)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  expireGhostBooking(selectedQrReservation.id);
+                  setSelectedQrReservation(null);
+                }}
+                className="w-full py-2.5 rounded-2xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-950/60 text-rose-700 dark:text-rose-300 font-bold text-xs border border-rose-200 dark:border-rose-900/60 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <ShieldAlert className="w-3.5 h-3.5" />
+                <span>Simulasi Batas Waktu 15 Menit Habis (Ghost-Booking)</span>
               </button>
             </div>
           </div>

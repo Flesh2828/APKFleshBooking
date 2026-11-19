@@ -1,5 +1,5 @@
 name: mobile_flutter
-description: "Aplikasi Mobile Room Booking menggunakan Flutter, Supabase & Edge Functions"
+description: "Aplikasi Mobile GuildSpace Smart Reservation menggunakan Flutter, Supabase & Edge Functions"
 publish_to: "none"
 version: 1.0.0+1
 

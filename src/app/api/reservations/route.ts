@@ -81,9 +81,7 @@ export async function POST(request: Request) {
 
     const now = new Date();
     const newReservation = {
-      id: `RB-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}-${Math.floor(
-        Math.random() * 900 + 100
-      )}`,
+      id: `GS-${Math.floor(Math.random() * 900 + 100)}`,
       userId: body.userId || 'usr-mhs1',
       roomId: body.roomId,
       userName: body.userName || 'Pemesan',
